@@ -11,6 +11,7 @@ Cloud and Network.
 *   **Control**:
     *   **Vacuums (V1)**: Use `device.v1_properties` to access traits like `status` or `consumables`.
         *   Call `await trait.refresh()` to update state.
+        *   Use `await device.v1_properties.command.clean_rooms([17, 19], repeat=2)` to start room cleaning. Segment IDs refer to the currently selected map; this does not switch maps. Supported repeat counts are determined by the device.
         *   Use `device.v1_properties.command.send()` for raw commands (start/stop).
     *   **Washers (A01)**: Use `device.dyad` or `device.zeo` for Dyad/Zeo devices.
         *   Read `api.values` for the latest known state, merged from query responses and unsolicited pushes.

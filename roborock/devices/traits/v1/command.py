@@ -25,6 +25,20 @@ class CommandTrait:
         """
         self._rpc_channel = None
 
+    async def clean_rooms(self, segments: list[int], repeat: int = 1) -> None:
+        """Start cleaning rooms on the currently selected map.
+
+        Segment IDs must be positive and repeat must be at least one. Supported
+        repeat counts are determined by the device. This does not switch maps.
+        """
+        if not segments:
+            raise ValueError("At least one segment is required")
+        if any(segment <= 0 for segment in segments):
+            raise ValueError("Segment IDs must be positive")
+        if repeat < 1:
+            raise ValueError("Repeat must be at least one")
+        await self.send(RoborockCommand.APP_SEGMENT_CLEAN, params=[{"segments": list(segments), "repeat": repeat}])
+
     async def send(self, command: RoborockCommand | str, params: ParamsType = None) -> Any:
         """Send a command to the device.
 
