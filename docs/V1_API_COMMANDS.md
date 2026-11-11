@@ -1551,7 +1551,10 @@ Description: Get the device's time zone.
 
 Parameters: None
 
-Returns: Time zone by the TZ identifier (e.g., America/Los_Angeles)
+Returns: A singleton list containing the robot's TZ identifier, e.g., `["America/Los_Angeles"]`.
+
+`command.get_robot_timezone()` returns that identifier as a string. It does not
+substitute the app's timezone or a host setting if the request fails.
 
 **Supported devices:**
 
@@ -1561,10 +1564,12 @@ Returns: Time zone by the TZ identifier (e.g., America/Los_Angeles)
 
 ### set_timezone
 
-Description: Sets the device's time zone
+Description: Sets the robot's time zone.
 
-Parameters:
+Parameters: A singleton list containing a TZ/IANA identifier, e.g., `["Europe/Berlin"]`.
 
+`command.set_robot_timezone("Europe/Berlin")` sends this request and returns
+`None` after an acknowledgment. Firmware decides which identifiers it accepts.
 
 
 

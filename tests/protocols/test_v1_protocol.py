@@ -127,6 +127,10 @@ def test_encode_mqtt_payload(command, params, expected):
                 }
             ],
         ),
+        (
+            b'{"t":1652547161,"dps":{"102":"{\\"id\\":20005,\\"result\\":[\\"Europe/Berlin\\"]}"}}',
+            ["Europe/Berlin"],
+        ),
     ],
 )
 def test_decode_rpc_response(payload: bytes, expected: RoborockBase) -> None:

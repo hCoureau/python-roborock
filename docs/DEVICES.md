@@ -23,6 +23,39 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+## Robot timezone (V1)
+
+The command trait provides explicit robot timezone operations:
+
+```python
+command = device.v1_properties.command
+timezone = await command.get_robot_timezone()
+await command.set_robot_timezone("Europe/Berlin")
+```
+
+These methods use the robot's native TZ/IANA identifier. App locale, app-init
+timezone and the host timezone are separate settings and are never used as
+fallbacks. Identifiers are preserved verbatim; firmware decides which identifiers
+it accepts. Unsupported devices report their existing RPC failure. The getter
+is not polled during discovery or initialization.
+
+The setter returns `None` after an acknowledgment and does not read back state.
+Callers can request a separate, optional readback:
+
+```python
+await command.set_robot_timezone("Europe/Berlin")
+reported_timezone = await command.get_robot_timezone()
+```
+
+A timeout or a failed optional readback leaves the device result unknown. The
+trait adds no rollback or retry. Existing adaptive RPC can retransmit a SET
+through MQTT after a local timeout, so this API does not guarantee one wire
+attempt. [PR #1027](https://github.com/Python-roborock/python-roborock/pull/1027)
+addresses that transport behavior separately.
+
+Changing the native timezone may affect native schedules. These methods do not
+reinterpret timers or certify DST or overnight schedule behavior.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**
