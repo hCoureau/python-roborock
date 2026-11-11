@@ -23,6 +23,28 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### Carpet boost (V1)
+
+V1 vacuums advertising `is_carpet_supported` expose `device.v1_properties.carpet_mode`.
+The trait reads the enabled flag and four legacy motor tuning values:
+
+```python
+carpet_mode = device.v1_properties.carpet_mode
+if carpet_mode is not None:
+    await carpet_mode.refresh()
+    print(carpet_mode.settings, carpet_mode.is_on)
+    await carpet_mode.enable()
+    await carpet_mode.disable()
+```
+
+`settings` is `None` until a successful read. Unknown reported enable codes remain
+visible in `settings.enable`; `is_on` is true only for code 1. Each toggle performs
+a fresh GET, preserves all four tuning values, sends SET, and reads back the result.
+It rejects writes when the response contains additional fields or an unknown enable
+code. Failed reads retain the last complete settings; SET failures stop before readback.
+Toggles on one trait are serialized, but app clients and raw commands can still race
+with them. This API controls legacy carpet boost, not carpet policy or deep-clean mode.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**

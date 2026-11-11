@@ -18,6 +18,7 @@ from roborock.data.v1 import (
 from roborock.data.v1.v1_code_mappings import ClearWaterBoxStatus, DirtyWaterBoxStatus, DustBagStatus
 from roborock.data.v1.v1_containers import (
     AppInitStatus,
+    CarpetModeSettings,
     CleanRecord,
     CleanSummary,
     Consumable,
@@ -32,6 +33,30 @@ from tests.mock_data import (
     DND_TIMER,
     STATUS,
 )
+
+
+def test_carpet_mode_settings() -> None:
+    """Complete tuning values round-trip through diagnostic serialization."""
+    wire = {"enable": 2, "current_integral": 1000, "current_high": 500, "current_low": 1000, "stall_time": 10}
+    settings = CarpetModeSettings.from_dict(wire)
+    assert settings == CarpetModeSettings(2, 1000, 500, 1000, 10)
+    assert settings.as_dict() == {
+        "enable": 2,
+        "currentIntegral": 1000,
+        "currentHigh": 500,
+        "currentLow": 1000,
+        "stallTime": 10,
+    }
+    assert CarpetModeSettings.from_dict(settings.as_dict()) == settings
+
+
+@pytest.mark.parametrize("missing", ["enable", "current_integral", "current_high", "current_low", "stall_time"])
+def test_carpet_mode_settings_requires_complete_data(missing: str) -> None:
+    """Incomplete settings cannot fabricate tuning defaults."""
+    wire = {"enable": 1, "current_integral": 1000, "current_high": 500, "current_low": 1000, "stall_time": 10}
+    del wire[missing]
+    with pytest.raises(TypeError):
+        CarpetModeSettings.from_dict(wire)
 
 
 def test_consumable():

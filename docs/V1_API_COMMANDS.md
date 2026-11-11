@@ -706,9 +706,22 @@ Return example:
 
 ### set_carpet_mode
 
-Description:
+Description: Enable or disable legacy carpet boost while preserving motor tuning.
 
-Parameters:
+Parameters: A singleton list containing all five snake-case settings fields:
+
+```json
+[{"enable": 1, "current_integral": 450, "current_high": 500, "current_low": 400, "stall_time": 10}]
+```
+
+Use the four tuning values from a fresh `get_carpet_mode` response rather than
+defaults. The values above are an example, not recommended calibration values.
+Reported tuning does not imply an ordering between `current_low` and `current_high`.
+The typed `carpet_mode` trait fresh-reads the complete settings, changes only `enable`
+(0 or 1), and reads back after a successful SET. It blocks writes for additional
+response fields or unknown enable codes because their writable contract is unknown.
+GET accepts an object or a singleton list containing an object. This legacy contract
+does not establish support for other carpet schemas or validate writes on every model.
 
 ### get_smart_wash_params
 
