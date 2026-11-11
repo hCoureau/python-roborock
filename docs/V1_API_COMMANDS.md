@@ -1210,9 +1210,11 @@ Source: Roborock S7 MaxV Ultra
 
 ### set_dust_collection_mode
 
-Description:
+Description: Set the dock's dust collection mode.
 
-Parameters:
+Parameters: `{"mode": code}`, where the existing enum vocabulary is Smart `0`,
+Light `1`, Balanced `2`, and Max `4`. Valid choices depend on the dock; these
+codes are not a discovered list of modes supported by every dock.
 
 ### get_wash_towel_mode
 
