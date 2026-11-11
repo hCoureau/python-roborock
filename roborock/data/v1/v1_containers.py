@@ -41,6 +41,13 @@ from .v1_code_mappings import (
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class DockInfo(RoborockBase):
+    """Opaque version metadata reported by the dock."""
+
+    version: str | None = None
+
+
 class FieldNameBase(StrEnum):
     """A base enum class that represents a field name in a RoborockBase dataclass."""
 

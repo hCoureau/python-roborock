@@ -23,6 +23,22 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### Reading dock version metadata
+
+On V1 devices whose dock supports `get_dock_info`, read the reported version
+explicitly:
+
+```python
+dock_info = await device.v1_properties.command.get_dock_info()
+print(dock_info.version)
+```
+
+`DockInfo.version` is an opaque string, such as `"0060"`, or `None` when the
+dock omits it or reports null. Strings are preserved verbatim, including leading
+zeros. This metadata is distinct from the app or robot firmware version and
+does not indicate whether an update is available. The reader excludes the dock
+serial number and runs only when called; discovery does not poll it.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**
