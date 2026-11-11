@@ -279,8 +279,21 @@ class StatusV2(RoborockBase):
 
 
 @dataclass
+class DnDTimerActions(RoborockBase):
+    """Device-reported integer DND action flags, without interpreting their meaning."""
+
+    resume: int | None = None
+    vol: int | None = None
+    led: int | None = None
+    dust: int | None = None
+    dry: int | None = None
+
+
+@dataclass
 class DnDTimer(RoborockBaseTimer):
-    """DnDTimer"""
+    """DND timer with optional device-reported action flags."""
+
+    actions: DnDTimerActions | None = None
 
 
 @dataclass

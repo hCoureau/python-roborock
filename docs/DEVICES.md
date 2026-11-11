@@ -11,6 +11,7 @@ Cloud and Network.
 *   **Control**:
     *   **Vacuums (V1)**: Use `device.v1_properties` to access traits like `status` or `consumables`.
         *   Call `await trait.refresh()` to update state.
+        *   After refreshing the DND trait, `device.v1_properties.dnd.actions` exposes optional device-reported integer flags (`resume`, `vol`, `led`, `dust`, `dry`). These are read-only reported values; timer commands do not configure them.
         *   Use `device.v1_properties.command.send()` for raw commands (start/stop).
     *   **Washers (A01)**: Use `device.dyad` or `device.zeo` for Dyad/Zeo devices.
         *   Read `api.values` for the latest known state, merged from query responses and unsolicited pushes.

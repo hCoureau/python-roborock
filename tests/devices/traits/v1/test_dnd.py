@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from roborock.data import DnDTimer
+from roborock.data import DnDTimer, DnDTimerActions
 from roborock.devices.device import RoborockDevice
 from roborock.devices.traits.v1.do_not_disturb import DoNotDisturbTrait
 from roborock.exceptions import RoborockException
@@ -28,7 +28,71 @@ def sample_dnd_timer() -> DnDTimer:
         end_hour=8,
         end_minute=0,
         enabled=1,
+        actions=DnDTimerActions(resume=1, vol=1, led=1, dust=1, dry=1),
     )
+
+
+async def test_get_dnd_timer_reported_actions(dnd_trait: DoNotDisturbTrait, mock_rpc_channel: AsyncMock) -> None:
+    """Preserve the captured Qrevo 2 Pro DND response through the public trait."""
+    mock_rpc_channel.send_command.return_value = [
+        {
+            "start_hour": 22,
+            "start_minute": 0,
+            "end_hour": 8,
+            "end_minute": 0,
+            "enabled": 1,
+            "actions": {"resume": 1, "vol": 1, "led": 1, "dust": 1, "dry": 1},
+        }
+    ]
+
+    await dnd_trait.refresh()
+
+    assert dnd_trait.actions == DnDTimerActions(resume=1, vol=1, led=1, dust=1, dry=1)
+    assert dnd_trait.start_hour == 22
+    assert dnd_trait.start_minute == 0
+    assert dnd_trait.end_hour == 8
+    assert dnd_trait.end_minute == 0
+    assert dnd_trait.is_on
+    mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.GET_DND_TIMER)
+
+
+@pytest.mark.parametrize(
+    ("response", "expected_actions"),
+    [
+        ({}, None),
+        ({"actions": {}}, DnDTimerActions()),
+        ({"actions": {"resume": 0, "dust": 7}}, DnDTimerActions(resume=0, dust=7)),
+        ({"actions": {"vol": 0, "led": 0, "dry": -1}}, DnDTimerActions(vol=0, led=0, dry=-1)),
+    ],
+)
+async def test_get_dnd_timer_optional_actions(
+    dnd_trait: DoNotDisturbTrait,
+    mock_rpc_channel: AsyncMock,
+    response: dict,
+    expected_actions: DnDTimerActions | None,
+) -> None:
+    """Preserve missing fields, zero and unknown integers without interpreting flags."""
+    dnd_trait.actions = DnDTimerActions(resume=1, vol=1, led=1, dust=1, dry=1)
+    mock_rpc_channel.send_command.return_value = [response]
+
+    await dnd_trait.refresh()
+
+    assert dnd_trait.actions == expected_actions
+
+
+async def test_enable_dnd_timer_with_actions(
+    dnd_trait: DoNotDisturbTrait, mock_rpc_channel: AsyncMock, sample_dnd_timer: DnDTimer
+) -> None:
+    """Enabling a reported timer sends only the existing four timer coordinates."""
+    mock_rpc_channel.send_command.return_value = [sample_dnd_timer.as_dict()]
+    await dnd_trait.refresh()
+    mock_rpc_channel.send_command.reset_mock()
+
+    await dnd_trait.enable()
+
+    mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.SET_DND_TIMER, params=[22, 0, 8, 0])
+    assert dnd_trait.actions == sample_dnd_timer.actions
+    assert dnd_trait.is_on
 
 
 async def test_get_dnd_timer_success(
