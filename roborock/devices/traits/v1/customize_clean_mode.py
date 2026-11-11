@@ -112,14 +112,15 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
         mop_mode: CleanRoutes | int,
         repeat: int = 1,
     ) -> None:
-        """Set a room's full cleaning settings on the currently selected map.
+        """Set fan power, water box mode, mop route and repeat for a room.
 
         All three modes are required and accept typed modes or raw wire
         integers, including firmware-specific slider codes. Do not use
         the "customized" status sentinels as fallback settings. Pass
         `repeat` explicitly to preserve a value other than the default 1.
 
-        Existing sequence preferences, unknown fields and other rooms are
+        Existing sequence preferences, model-specific fields such as mop_power
+        and custom_water_box_distance, unknown fields and other rooms are
         preserved. A new room is sent without a sequence preference.
         """
         if not self._device_features.is_customized_clean_supported:

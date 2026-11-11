@@ -26,7 +26,8 @@ Cloud and Network.
 ## Per-room V1 cleaning settings
 
 On devices supporting customized cleaning, `customize_clean_mode.set_mode`
-sets a room's full cleaning settings on the currently selected map:
+sets fan power, water box mode, mop route and repeat for a room. Segment IDs
+refer to map rooms:
 
 ```python
 from roborock.data.v1.v1_clean_modes import CleanRoutes, VacuumModes, WaterModes
@@ -45,8 +46,9 @@ if custom_modes is not None:
 
 Supply all three modes; raw integer codes are also accepted for firmware-specific
 settings. Do not use the status trait's "customized" sentinel codes as fallback
-values. `repeat` defaults to 1. Existing sequence preferences and other rooms'
-overrides are preserved.
+values. `repeat` defaults to 1. Existing sequence preferences, model-specific
+fields such as `mop_power` and `custom_water_box_distance`, unknown fields and
+other rooms' overrides are preserved.
 
 ## Background: Understanding Device Protocols
 
