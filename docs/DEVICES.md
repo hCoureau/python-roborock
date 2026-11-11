@@ -23,6 +23,27 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### V1 smart-wash settings
+
+When `device.v1_properties.smart_wash_params` is available, set both legacy
+settings explicitly:
+
+```python
+await device.v1_properties.smart_wash_params.set_params(smart_wash=True, wash_interval=1200)
+```
+
+`smart_wash` writes the documented `0` (off) or `1` (on) value. `wash_interval`
+is in seconds and must be positive; this library input rule does not establish
+the interval range accepted by each device. The setter sends the complete pair
+and then refreshes the trait with the device-reported values. Command or refresh
+failures propagate and leave the cached values unchanged; a refresh failure
+does not establish whether the device applied the settings.
+
+The existing [command documentation](V1_API_COMMANDS.md#set_smart_wash_params)
+describes these settings for the S8 Pro Ultra. Device support varies. Read values
+such as `smart_wash == 2` remain integers with unspecified semantics; this
+on/off setter does not configure those additional modes.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**
