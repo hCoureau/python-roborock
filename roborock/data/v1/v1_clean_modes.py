@@ -198,8 +198,21 @@ def get_water_modes(features: DeviceFeatures) -> list[WaterModes]:
     return supported_modes
 
 
+def get_water_slide_position(code: int) -> int | None:
+    """Return the exact slider position, excluding special and unknown codes."""
+    position = code - 220
+    return position if 1 <= position <= _WATER_SLIDE_RANGES[-1][0] else None
+
+
+def get_water_slide_code(position: int) -> int:
+    """Encode a slider position, rejecting values outside the app range."""
+    if not 1 <= position <= _WATER_SLIDE_RANGES[-1][0]:
+        raise ValueError("Water slider position must be between 1 and 30")
+    return 220 + position
+
+
 def get_water_slide_mode_name(code: int) -> str | None:
-    """Get the app's range name for a water slide code, or None if out of range."""
+    """Get the app range or special-mode name, or None for an unknown code."""
     mode = _resolve_water_slide_mode(code)
     return mode.display_name if mode is not None else None
 
@@ -214,8 +227,8 @@ def _resolve_water_slide_mode(code: int) -> WaterModes | None:
         return WaterModes.CUSTOMIZED
     if code == WaterModes.SMART_MODE.code:
         return WaterModes.SMART_MODE
-    position = code - 220
-    if position < 1:
+    position = get_water_slide_position(code)
+    if position is None:
         return None
     for last_position, mode in _WATER_SLIDE_RANGES:
         if position <= last_position:

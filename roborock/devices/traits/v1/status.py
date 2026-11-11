@@ -17,7 +17,9 @@ from roborock import (
     get_dock_state,
     get_water_mode_mapping,
     get_water_modes,
+    get_water_slide_code,
     get_water_slide_mode_name,
+    get_water_slide_position,
     resolve_cleaning_mode,
 )
 from roborock.devices.traits.common import DpsDataConverter, TraitUpdateListener
@@ -131,16 +133,14 @@ class StatusTrait(StatusV2, common.V1TraitMixin, TraitUpdateListener):
         """Return the exact 1–30 slider position, excluding special modes."""
         if not self._device_features_trait.is_water_slide_mode_supported or self.water_box_mode is None:
             return None
-        position = self.water_box_mode - 220
-        return position if 1 <= position <= 30 else None
+        return get_water_slide_position(self.water_box_mode)
 
     async def set_water_slide_position(self, position: int) -> None:
         """Set an exact water slider position and refresh the reported status."""
         if not self._device_features_trait.is_water_slide_mode_supported:
             raise RoborockUnsupportedFeature("Water slider positions are not supported")
-        if not 1 <= position <= 30:
-            raise ValueError("Water slider position must be between 1 and 30")
-        await self.rpc_channel.send_command(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[220 + position])
+        code = get_water_slide_code(position)
+        await self.rpc_channel.send_command(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[code])
         await self.refresh()
 
     @property
