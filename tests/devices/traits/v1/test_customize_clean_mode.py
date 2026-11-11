@@ -1,6 +1,7 @@
 """Tests for the CustomizeCleanModeTrait class."""
 
 import asyncio
+from copy import deepcopy
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -9,7 +10,7 @@ from roborock.data import HomeDataDevice, SegmentCleanMode
 from roborock.data.v1.v1_clean_modes import CleanRoutes, VacuumModes, WaterModes
 from roborock.devices.device import RoborockDevice
 from roborock.devices.traits.v1.customize_clean_mode import CustomizeCleanModeTrait
-from roborock.exceptions import RoborockParsingException, RoborockUnsupportedFeature
+from roborock.exceptions import RoborockParsingException, RoborockTimeout, RoborockUnsupportedFeature
 from roborock.roborock_typing import RoborockCommand
 from tests import mock_data
 
@@ -472,3 +473,203 @@ async def test_set_clean_then_mop_concurrent_calls_do_not_clobber(
     # a stale pre-first-call read) would revert whichever room the first
     # call changed.
     assert {segment: entry["seq_type"] for segment, entry in device_table.items()} == {4: 1, 7: 0}
+
+
+@pytest.mark.parametrize(
+    ("fan_power", "water_box_mode", "mop_mode", "repeat", "expected_modes"),
+    [
+        (VacuumModes.BALANCED, WaterModes.HIGH, CleanRoutes.DEEP, 1, (102, 203, 301)),
+        (109, 207, 309, 3, (109, 207, 309)),
+    ],
+)
+@pytest.mark.parametrize("segment", [7, 9])
+async def test_set_mode(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    device: RoborockDevice,
+    segment: int,
+    fan_power: VacuumModes | int,
+    water_box_mode: WaterModes | int,
+    mop_mode: CleanRoutes | int,
+    repeat: int,
+    expected_modes: tuple[int, int, int],
+) -> None:
+    """General settings preserve sequence preferences, raw fields and every other room."""
+    assert customize_clean_mode_trait is not None
+    assert device.v1_properties
+    assert device.v1_properties.device_features.is_customized_clean_supported
+    assert not device.v1_properties.device_features.is_clean_then_mop_mode_supported
+    initial = [
+        {**CUSTOMIZE_CLEAN_MODE_DATA[0], "future_field": {"value": 42}},
+        {**CUSTOMIZE_CLEAN_MODE_DATA[1], "mop_power": 50, "future_field": [1, 2]},
+    ]
+    original = deepcopy(initial)
+    expected_entry = {
+        **(initial[1] if segment == 7 else {}),
+        "segment": segment,
+        "fan_power": expected_modes[0],
+        "water_box_mode": expected_modes[1],
+        "mop_mode": expected_modes[2],
+        "repeat": repeat,
+    }
+    expected = [initial[0], expected_entry] if segment == 7 else [*initial, expected_entry]
+    mock_rpc_channel.send_command.side_effect = [initial, "ok", expected]
+
+    kwargs = {"repeat": repeat} if repeat != 1 else {}
+    await customize_clean_mode_trait.set_mode(
+        segment, fan_power=fan_power, water_box_mode=water_box_mode, mop_mode=mop_mode, **kwargs
+    )
+
+    assert mock_rpc_channel.send_command.mock_calls == [
+        call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE),
+        call(RoborockCommand.SET_CUSTOMIZE_CLEAN_MODE, params=expected),
+        call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE),
+    ]
+    assert initial == original
+    assert customize_clean_mode_trait.modes == [SegmentCleanMode.from_dict(entry) for entry in expected]
+    assert customize_clean_mode_trait.by_segment[segment].seq_type == (1 if segment == 7 else None)
+    if segment == 9:
+        assert "seq_type" not in expected_entry
+
+
+async def test_set_mode_unsupported(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    device: RoborockDevice,
+) -> None:
+    """The setter checks current custom-mode capability before validating inputs or sending."""
+    assert customize_clean_mode_trait is not None
+    assert device.v1_properties
+    device.v1_properties.device_features.is_customized_clean_supported = False
+
+    with pytest.raises(RoborockUnsupportedFeature):
+        await customize_clean_mode_trait.set_mode(0, fan_power=101, water_box_mode=203, mop_mode=300, repeat=0)
+
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+@pytest.mark.parametrize(("segment", "repeat"), [(0, 1), (-1, 1), (7, 0), (7, -1)])
+async def test_set_mode_invalid_inputs(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    segment: int,
+    repeat: int,
+) -> None:
+    """Invalid room identifiers and repeat counts fail before any device command."""
+    assert customize_clean_mode_trait is not None
+
+    with pytest.raises(ValueError):
+        await customize_clean_mode_trait.set_mode(
+            segment, fan_power=101, water_box_mode=203, mop_mode=300, repeat=repeat
+        )
+
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+@pytest.mark.parametrize("stage", ["initial_read", "write", "readback"])
+async def test_set_mode_rpc_failure(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    stage: str,
+) -> None:
+    """Failures propagate, retaining the latest successful read without retries or rollback."""
+    assert customize_clean_mode_trait is not None
+    mock_rpc_channel.send_command.side_effect = [CUSTOMIZE_CLEAN_MODE_DATA]
+    await customize_clean_mode_trait.refresh()
+    mock_rpc_channel.send_command.reset_mock()
+    fresh = [{**CUSTOMIZE_CLEAN_MODE_DATA[0], "repeat": 2}]
+    written = [{**fresh[0], "fan_power": 109, "water_box_mode": 207, "mop_mode": 309, "repeat": 3}]
+    error = RoborockTimeout("customized mode RPC failed")
+    responses: list[object] = [error]
+    expected_calls = [call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE)]
+    expected_state = CUSTOMIZE_CLEAN_MODE_DATA
+    if stage != "initial_read":
+        responses = [fresh, error]
+        expected_calls.append(call(RoborockCommand.SET_CUSTOMIZE_CLEAN_MODE, params=written))
+        expected_state = fresh
+    if stage == "readback":
+        responses = [fresh, "ok", error]
+        expected_calls.append(call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE))
+    mock_rpc_channel.send_command.side_effect = responses
+
+    with pytest.raises(RoborockTimeout) as exc_info:
+        await customize_clean_mode_trait.set_mode(4, fan_power=109, water_box_mode=207, mop_mode=309, repeat=3)
+
+    assert exc_info.value is error
+    assert mock_rpc_channel.send_command.mock_calls == expected_calls
+    assert customize_clean_mode_trait.modes == [SegmentCleanMode.from_dict(entry) for entry in expected_state]
+    assert fresh[0]["fan_power"] == 102
+    assert fresh[0]["repeat"] == 2
+
+
+@pytest.mark.parametrize("readback", [False, True])
+@pytest.mark.parametrize("bad_response", [{"unexpected": "shape"}, [CUSTOMIZE_CLEAN_MODE_DATA[0]] * 2])
+async def test_set_mode_invalid_table(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    readback: bool,
+    bad_response: object,
+) -> None:
+    """Malformed or duplicate tables cannot replace the latest successfully read state."""
+    assert customize_clean_mode_trait is not None
+    mock_rpc_channel.send_command.side_effect = [CUSTOMIZE_CLEAN_MODE_DATA]
+    await customize_clean_mode_trait.refresh()
+    mock_rpc_channel.send_command.reset_mock()
+    fresh = [{**CUSTOMIZE_CLEAN_MODE_DATA[0], "repeat": 2}]
+    written = [{**fresh[0], "fan_power": 109, "water_box_mode": 207, "mop_mode": 309, "repeat": 1}]
+    mock_rpc_channel.send_command.side_effect = [fresh, "ok", bad_response] if readback else [bad_response]
+
+    with pytest.raises(RoborockParsingException):
+        await customize_clean_mode_trait.set_mode(4, fan_power=109, water_box_mode=207, mop_mode=309)
+
+    expected_calls = [call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE)]
+    if readback:
+        expected_calls.extend(
+            [
+                call(RoborockCommand.SET_CUSTOMIZE_CLEAN_MODE, params=written),
+                call(RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE),
+            ]
+        )
+    assert mock_rpc_channel.send_command.mock_calls == expected_calls
+    expected_state = fresh if readback else CUSTOMIZE_CLEAN_MODE_DATA
+    assert customize_clean_mode_trait.modes == [SegmentCleanMode.from_dict(entry) for entry in expected_state]
+
+
+@pytest.mark.parametrize("device_info", [SAROS_10R])
+@pytest.mark.parametrize("general_first", [False, True])
+async def test_concurrent_mode_setters(
+    customize_clean_mode_trait: CustomizeCleanModeTrait | None,
+    mock_rpc_channel: AsyncMock,
+    device_info: HomeDataDevice,
+    general_first: bool,
+) -> None:
+    """General and sequence setters serialize full transactions and retain both changes."""
+    assert customize_clean_mode_trait is not None
+    device_table = deepcopy(CUSTOMIZE_CLEAN_MODE_DATA)
+
+    async def send_command(command: RoborockCommand, params: list[dict] | None = None) -> object:
+        nonlocal device_table
+        await asyncio.sleep(0)
+        if command is RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE:
+            return deepcopy(device_table)
+        assert command is RoborockCommand.SET_CUSTOMIZE_CLEAN_MODE
+        assert params is not None
+        device_table = deepcopy(params)
+        return "ok"
+
+    mock_rpc_channel.send_command.side_effect = send_command
+    general = customize_clean_mode_trait.set_mode(4, fan_power=109, water_box_mode=207, mop_mode=309, repeat=2)
+    sequence = customize_clean_mode_trait.set_clean_then_mop(7, False, fan_power=101, water_box_mode=203, mop_mode=300)
+
+    await asyncio.gather(*([general, sequence] if general_first else [sequence, general]))
+
+    assert [rpc_call.args[0] for rpc_call in mock_rpc_channel.send_command.mock_calls] == [
+        RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE,
+        RoborockCommand.SET_CUSTOMIZE_CLEAN_MODE,
+        RoborockCommand.GET_CUSTOMIZE_CLEAN_MODE,
+    ] * 2
+    assert device_table == [
+        {"segment": 4, "fan_power": 109, "water_box_mode": 207, "mop_mode": 309, "repeat": 2, "seq_type": 0},
+        {"segment": 7, "fan_power": 101, "water_box_mode": 203, "mop_mode": 300, "repeat": 1, "seq_type": 0},
+    ]
+    assert customize_clean_mode_trait.modes == [SegmentCleanMode.from_dict(entry) for entry in device_table]

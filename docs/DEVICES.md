@@ -23,6 +23,31 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+## Per-room V1 cleaning settings
+
+On devices supporting customized cleaning, `customize_clean_mode.set_mode`
+sets a room's full cleaning settings on the currently selected map:
+
+```python
+from roborock.data.v1.v1_clean_modes import CleanRoutes, VacuumModes, WaterModes
+
+assert device.v1_properties is not None
+custom_modes = device.v1_properties.customize_clean_mode
+if custom_modes is not None:
+    await custom_modes.set_mode(
+        7,
+        fan_power=VacuumModes.BALANCED,
+        water_box_mode=WaterModes.HIGH,
+        mop_mode=CleanRoutes.STANDARD,
+        repeat=2,
+    )
+```
+
+Supply all three modes; raw integer codes are also accepted for firmware-specific
+settings. Do not use the status trait's "customized" sentinel codes as fallback
+values. `repeat` defaults to 1. Existing sequence preferences and other rooms'
+overrides are preserved.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**

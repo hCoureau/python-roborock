@@ -4,7 +4,7 @@ Rooms without an override are simply absent from `modes` - the robot falls
 back to the global settings (fan power, water box mode, mop mode and
 clean-then-mop) for those. An empty list means no room currently has one.
 
-A per-room override set via `set_clean_then_mop` is persisted on the device:
+A per-room override set via `set_mode` or `set_clean_then_mop` is persisted on the device:
 it is a preference attached to that room and is re-applied whenever the room
 is cleaned, until overwritten or cleared from the vendor app.
 """
@@ -63,7 +63,7 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
         """Refresh the contents of this trait.
 
         Overrides `V1TraitMixin.refresh()` to additionally retain each
-        room's raw wire dict, by segment - `set_clean_then_mop` round-trips
+        room's raw wire dict, by segment - both setters round-trip
         untouched rooms from this raw data rather than the typed
         `SegmentCleanMode` fields, so per-model keys this library doesn't
         model (or a value it failed to parse) are preserved on write instead
@@ -102,6 +102,42 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
             raw_by_segment[mode.segment] = raw_entry
         common.merge_trait_values(self, new_data)
         self._raw_by_segment = raw_by_segment
+
+    async def set_mode(
+        self,
+        segment: int,
+        *,
+        fan_power: VacuumModes | int,
+        water_box_mode: WaterModes | int,
+        mop_mode: CleanRoutes | int,
+        repeat: int = 1,
+    ) -> None:
+        """Set a room's full cleaning settings on the currently selected map.
+
+        All three modes are required and accept typed modes or raw wire
+        integers, including firmware-specific slider codes. Do not use
+        the "customized" status sentinels as fallback settings. Pass
+        `repeat` explicitly to preserve a value other than the default 1.
+
+        Existing sequence preferences, unknown fields and other rooms are
+        preserved. A new room is sent without a sequence preference.
+        """
+        if not self._device_features.is_customized_clean_supported:
+            raise RoborockUnsupportedFeature("Device does not support per-room custom modes")
+        if segment <= 0:
+            raise ValueError("segment must be positive")
+        if repeat < 1:
+            raise ValueError("repeat must be at least 1")
+
+        await self._set_mode(
+            {
+                "segment": segment,
+                "fan_power": fan_power.code if isinstance(fan_power, VacuumModes) else fan_power,
+                "water_box_mode": water_box_mode.code if isinstance(water_box_mode, WaterModes) else water_box_mode,
+                "mop_mode": mop_mode.code if isinstance(mop_mode, CleanRoutes) else mop_mode,
+                "repeat": repeat,
+            }
+        )
 
     async def set_clean_then_mop(
         self,
@@ -157,6 +193,19 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
         if not self._device_features.is_clean_then_mop_mode_supported:
             raise RoborockUnsupportedFeature("Device does not support clean-then-mop")
 
+        await self._set_mode(
+            {
+                "segment": segment,
+                "fan_power": fan_power.code if isinstance(fan_power, VacuumModes) else fan_power,
+                "water_box_mode": water_box_mode.code if isinstance(water_box_mode, WaterModes) else water_box_mode,
+                "mop_mode": mop_mode.code if isinstance(mop_mode, CleanRoutes) else mop_mode,
+                "repeat": repeat,
+                "seq_type": SEQ_TYPE_CLEAN_THEN_MOP if enabled else 0,
+            }
+        )
+
+    async def _set_mode(self, new_entry: dict) -> None:
+        """Read, merge, write and refresh the full table under the shared lock."""
         async with self._write_lock:
             # Always refresh immediately before building the write, even if
             # `self.modes` is already populated: this merges-and-replaces
@@ -166,15 +215,6 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
             # value.
             await self.refresh()
 
-            seq_type = SEQ_TYPE_CLEAN_THEN_MOP if enabled else 0
-            new_entry = {
-                "segment": segment,
-                "fan_power": fan_power.code if isinstance(fan_power, VacuumModes) else fan_power,
-                "water_box_mode": water_box_mode.code if isinstance(water_box_mode, WaterModes) else water_box_mode,
-                "mop_mode": mop_mode.code if isinstance(mop_mode, CleanRoutes) else mop_mode,
-                "repeat": repeat,
-                "seq_type": seq_type,
-            }
             # Start from this room's raw wire dict (if it already had an
             # override) so any field this library doesn't model - or
             # couldn't parse - survives the write, and only overlay the keys
@@ -183,6 +223,7 @@ class CustomizeCleanModeTrait(CustomizeCleanModes, common.V1TraitMixin):
             # per-model defaults for the rest, same as the original
             # single-entry write did.
             raw_entries = dict(self._raw_by_segment)
+            segment = new_entry["segment"]
             raw_entries[segment] = {**raw_entries.get(segment, {}), **new_entry}
 
             # Send the full known table, not just the changed room: on at
