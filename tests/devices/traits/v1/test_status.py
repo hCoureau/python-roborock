@@ -916,3 +916,90 @@ def test_update_listener_ignores_unrelated(status_trait: StatusTrait) -> None:
 
     assert not event.is_set()
     unsubscribe()
+
+
+@pytest.mark.parametrize("position", range(1, 31))
+async def test_water_slide_position_readback(mock_rpc_channel: AsyncMock, position: int) -> None:
+    """Retain each app position rather than reducing it to a preset."""
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait._rpc_channel = mock_rpc_channel
+    mock_rpc_channel.send_command.return_value = [{**STATUS, "water_box_mode": 220 + position}]
+    await trait.refresh()
+    assert trait.water_slide_position == position
+
+
+@pytest.mark.parametrize("code", [None, 200, 204, 209, 210, 220, 251, 999])
+def test_water_slide_position_special_codes(code: int | None) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait.water_box_mode = code
+    assert trait.water_slide_position is None
+
+
+def test_water_slide_position_unsupported_readback() -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=False)
+    trait.water_box_mode = 235
+    assert trait.water_slide_position is None
+
+
+@pytest.mark.parametrize("position", [1, 23, 30])
+async def test_set_water_slide_position(mock_rpc_channel: AsyncMock, position: int) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait._rpc_channel = mock_rpc_channel
+    # The reported position can differ from the request; prefer the readback.
+    mock_rpc_channel.send_command.side_effect = ["ok", [{**STATUS, "water_box_mode": 225}]]
+    await trait.set_water_slide_position(position)
+    assert mock_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[220 + position]),
+        call(RoborockCommand.GET_STATUS),
+    ]
+    assert trait.water_slide_position == 5
+
+
+@pytest.mark.parametrize("position", [0, 31])
+async def test_set_water_slide_position_invalid(mock_rpc_channel: AsyncMock, position: int) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait._rpc_channel = mock_rpc_channel
+    with pytest.raises(ValueError, match="between 1 and 30"):
+        await trait.set_water_slide_position(position)
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+async def test_set_water_slide_position_unsupported(mock_rpc_channel: AsyncMock) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=False)
+    trait._rpc_channel = mock_rpc_channel
+    with pytest.raises(RoborockUnsupportedFeature):
+        await trait.set_water_slide_position(23)
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+@pytest.mark.parametrize("fail_refresh", [False, True])
+async def test_set_water_slide_position_failure(mock_rpc_channel: AsyncMock, fail_refresh: bool) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait._rpc_channel = mock_rpc_channel
+    trait.water_box_mode = 235
+    error = RoborockException("Command failed")
+    mock_rpc_channel.send_command.side_effect = ["ok", error] if fail_refresh else error
+    with pytest.raises(RoborockException, match="Command failed"):
+        await trait.set_water_slide_position(23)
+    assert trait.water_slide_position == 15
+    assert mock_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[243]),
+        *([call(RoborockCommand.GET_STATUS)] if fail_refresh else []),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("code", "name", "intent"),
+    [
+        (204, "custom", CleaningMode.CUSTOM),
+        (209, "smart_mode", CleaningMode.SMART_MODE),
+        (210, "smart_water", CleaningMode.VAC_AND_MOP),
+    ],
+)
+def test_water_slide_special_mode_names(code: int, name: str, intent: CleaningMode) -> None:
+    trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    trait.water_box_mode = code
+    trait.fan_power = 102
+    trait.mop_mode = 300
+    assert trait.water_mode_name == name
+    assert trait.current_cleaning_mode == intent

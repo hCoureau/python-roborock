@@ -23,6 +23,18 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### Exact V1 water-slider positions
+
+For a V1 device with water-slider support, `device.v1_properties.status.water_slide_position`
+reports the exact app position from 1 to 30. It returns `None` for devices
+without that capability, missing status, Off, Custom, SmartPlan and other
+non-position modes. The existing `water_mode_name` still reports grouped names.
+
+Use `await device.v1_properties.status.set_water_slide_position(23)` to set a
+position and refresh the reported status. This changes a cleaning preference
+without starting a task. Positions outside 1–30 raise `ValueError`; devices
+without slider support raise `RoborockUnsupportedFeature`.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**

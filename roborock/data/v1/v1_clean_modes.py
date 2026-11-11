@@ -210,6 +210,10 @@ def _resolve_water_slide_mode(code: int) -> WaterModes | None:
         return WaterModes.OFF
     if code == WaterModes.SMART_WATER.code:
         return WaterModes.SMART_WATER
+    if code == WaterModes.CUSTOMIZED.code:
+        return WaterModes.CUSTOMIZED
+    if code == WaterModes.SMART_MODE.code:
+        return WaterModes.SMART_MODE
     position = code - 220
     if position < 1:
         return None
