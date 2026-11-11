@@ -1,6 +1,7 @@
 from typing import Any
 
 from roborock import RoborockCommand
+from roborock.data.v1 import RoborockZone
 from roborock.protocols.v1_protocol import ParamsType
 
 
@@ -24,6 +25,18 @@ class CommandTrait:
         device setup code.
         """
         self._rpc_channel = None
+
+    async def clean_zones(self, zones: list[RoborockZone], *, total_passes: int = 1) -> None:
+        """Request cleaning of one to five native-coordinate zones for one to three total passes."""
+        if not 1 <= len(zones) <= 5:
+            raise ValueError("Zone cleaning requires one to five zones")
+        if not 1 <= total_passes <= 3:
+            raise ValueError("Zone cleaning requires one to three total passes")
+        if any(zone.x_start >= zone.x_end or zone.y_start >= zone.y_end for zone in zones):
+            raise ValueError("Zone start coordinates must be less than end coordinates")
+
+        params = [[zone.x_start, zone.y_start, zone.x_end, zone.y_end, total_passes] for zone in zones]
+        await self.send(RoborockCommand.APP_ZONED_CLEAN, params=params)
 
     async def send(self, command: RoborockCommand | str, params: ParamsType = None) -> Any:
         """Send a command to the device.

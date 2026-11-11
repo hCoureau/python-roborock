@@ -41,6 +41,16 @@ from .v1_code_mappings import (
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class RoborockZone(RoborockBase):
+    """A rectangle in the robot-native V1 map coordinate system."""
+
+    x_start: int
+    y_start: int
+    x_end: int
+    y_end: int
+
+
 class FieldNameBase(StrEnum):
     """A base enum class that represents a field name in a RoborockBase dataclass."""
 

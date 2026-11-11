@@ -477,13 +477,21 @@ Parameters:
 
 Description: Starts a zone clean
 
-Parameters:
+Parameters: A list of one to five rows, each with the layout
+`[x_start, y_start, x_end, y_end, total_passes]`. Coordinates use the robot-native
+V1 map coordinate system, with `x_start < x_end` and `y_start < y_end`.
+`total_passes` is 1, 2 or 3, counting all passes including the first.
 
-<!--
-    Us this the last known zone
--->
+This is the legacy request format used by python-miio and Valetudo. It does not
+establish support on every V1 device; physical zone cleaning on a294 remains
+unvalidated. No universal coordinate bounds are established.
 
-Returns: ok or error
+Returns: ok or error. A successful request does not indicate that physical
+cleaning has completed.
+
+Use `device.v1_properties.command.clean_zones()` with `RoborockZone` for a typed
+request. Its total passes are distinct from Home Assistant's existing `repeats`
+service values of 0–2; do not pass those values through as total passes.
 
 **Supported devices:**
 

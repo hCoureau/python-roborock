@@ -23,6 +23,31 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### V1 zone cleaning
+
+For V1 vacuums that accept the legacy `app_zoned_clean` command, supply rectangles
+in the robot-native map coordinate system:
+
+```python
+from roborock.data.v1 import RoborockZone
+
+await device.v1_properties.command.clean_zones(
+    [RoborockZone(x_start=22000, y_start=24000, x_end=26000, y_end=28000)],
+    total_passes=2,
+)
+```
+
+Obtain coordinates from a map whose native coordinate system you understand;
+the library performs no screen-coordinate conversion, scaling or axis reversal.
+Each rectangle requires `x_start < x_end` and `y_start < y_end`. The legacy
+request allows one to five zones and one to three total passes, including the
+first pass. These are distinct from Home Assistant's existing `repeats` service
+values of 0–2.
+
+The method returns `None` when the request completes successfully; it does not
+track physical cleaning completion or refresh other traits. Support depends on
+the device, and physical zone cleaning on a294 remains unvalidated.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**

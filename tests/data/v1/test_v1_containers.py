@@ -14,6 +14,7 @@ from roborock.data.v1 import (
     RoborockDockTypeCode,
     RoborockErrorCode,
     RoborockStateCode,
+    RoborockZone,
 )
 from roborock.data.v1.v1_code_mappings import ClearWaterBoxStatus, DirtyWaterBoxStatus, DustBagStatus
 from roborock.data.v1.v1_containers import (
@@ -32,6 +33,15 @@ from tests.mock_data import (
     DND_TIMER,
     STATUS,
 )
+
+
+def test_roborock_zone() -> None:
+    """Zone coordinates follow the standard model serialization conventions."""
+    zone = RoborockZone.from_dict({"x_start": 22000, "y_start": 24000, "x_end": 26000, "y_end": 28000})
+
+    assert zone == RoborockZone(22000, 24000, 26000, 28000)
+    assert zone.as_dict() == {"xStart": 22000, "yStart": 24000, "xEnd": 26000, "yEnd": 28000}
+    assert RoborockZone.from_dict(zone.as_dict()) == zone
 
 
 def test_consumable():
