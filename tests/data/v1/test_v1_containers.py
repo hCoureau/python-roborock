@@ -23,6 +23,7 @@ from roborock.data.v1.v1_containers import (
     CleanSummaryWithDetail,
     Consumable,
     DnDTimer,
+    DockInfo,
     StatusV2,
     get_dock_state,
 )
@@ -33,6 +34,14 @@ from tests.mock_data import (
     DND_TIMER,
     STATUS,
 )
+
+
+@pytest.mark.parametrize("version", ["0060", "None", None])
+def test_dock_info_serialization(version: str | None) -> None:
+    """Dock version metadata keeps opaque strings and omits absent values."""
+    info = DockInfo(version=version)
+    assert info.version == version
+    assert info.as_dict() == ({"version": version} if version is not None else {})
 
 
 def test_consumable():

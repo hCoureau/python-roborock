@@ -1,6 +1,8 @@
 from typing import Any
 
 from roborock import RoborockCommand
+from roborock.data import DockInfo
+from roborock.exceptions import RoborockParsingException
 from roborock.protocols.v1_protocol import ParamsType
 
 
@@ -36,3 +38,30 @@ class CommandTrait:
         if not self._rpc_channel:
             raise ValueError("Device trait in invalid state")
         return await self._rpc_channel.send_command(command, params=params)
+
+    async def get_dock_info(self) -> DockInfo:
+        """Read opaque dock version metadata on demand, excluding the serial number."""
+        response = await self.send(RoborockCommand.GET_DOCK_INFO)
+        context: dict[str, Any] = {"response": "[REDACTED]", "response_type": type(response).__name__}
+        if isinstance(response, list):
+            context["response_length"] = len(response)
+        try:
+            if isinstance(response, list):
+                if len(response) != 1:
+                    raise ValueError("Expected exactly one dock info object")
+                response = response[0]
+            if not isinstance(response, dict):
+                raise TypeError("Expected a dock info object")
+            version = response.get("version")
+            if version is not None and not isinstance(version, str):
+                context["version_type"] = type(version).__name__
+                raise TypeError("Expected a string or null dock version")
+            context = {"version": version}
+            return DockInfo(version=version)
+        except (TypeError, ValueError) as err:
+            raise RoborockParsingException(
+                trait_name=self.__class__.__name__,
+                command=RoborockCommand.GET_DOCK_INFO,
+                payload=context,
+                inner_error=err,
+            ) from err
