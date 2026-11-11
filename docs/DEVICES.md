@@ -23,6 +23,23 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### Read selected voice-package metadata (V1)
+
+```python
+assert device.v1_properties is not None
+sound = await device.v1_properties.sound_volume.get_current_sound()
+print(sound.sid_in_use, sound.sid_version, sound.language)
+```
+
+This read-only method returns a `CurrentSound` object with the reported
+`sid_in_use`, `sid_version`, `sid_in_progress`, `msg_ver`, `location`, `bom`,
+and `language` fields. Missing fields are `None`. Package IDs and versions
+remain raw integers; `sid_in_progress=0` is preserved without interpreting
+its meaning, and `location` is reported verbatim rather than treated as a
+timezone. The metadata does not establish that a voice package can be installed
+or switched. Reading it leaves the cached volume unchanged; `refresh()` on
+the sound volume trait continues to fetch the volume.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**
