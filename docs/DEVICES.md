@@ -23,6 +23,22 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
+### Automatic mop drying (V1)
+
+On V1 devices with a dryable dock, `device.v1_properties.mop_dryer` controls
+automatic mop drying after washing. Call
+`await device.v1_properties.mop_dryer.enable_with_duration(14400)` to enable
+automatic drying with a duration in seconds. The duration must be positive;
+the firmware determines which durations it accepts.
+
+The method refreshes the settings after the command, so `status` and
+`on.dry_time` reflect the device's response. It does not start a drying cycle;
+use `start_dry()` and `stop_dry()` to control a cycle directly. The duration
+command does not guarantee preservation of other drying profile fields.
+If the command succeeds but the refresh fails, the cached settings remain
+unchanged and the device's resulting setting is unknown until a successful
+refresh.
+
 ## Background: Understanding Device Protocols
 
 **The library supports three device protocol versions, each with different capabilities:**
