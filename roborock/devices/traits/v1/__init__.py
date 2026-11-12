@@ -77,6 +77,7 @@ from . import (
     customize_clean_mode,
     device_features,
     do_not_disturb,
+    dock_info,
     dust_collection_mode,
     flow_led_status,
     home,
@@ -102,6 +103,7 @@ from .consumeable import ConsumableTrait
 from .customize_clean_mode import CustomizeCleanModeTrait
 from .device_features import DeviceFeaturesTrait
 from .do_not_disturb import DoNotDisturbTrait
+from .dock_info import DockInfoTrait
 from .dust_collection_mode import DustCollectionModeTrait
 from .flow_led_status import FlowLedStatusTrait
 from .home import HomeTrait
@@ -131,6 +133,7 @@ __all__ = [
     "customize_clean_mode",
     "device_features",
     "do_not_disturb",
+    "dock_info",
     "dust_collection_mode",
     "flow_led_status",
     "home",
@@ -183,6 +186,7 @@ class PropertiesApi(Trait):
     obstacle_photos: ObstaclePhotoTrait | None = None
     mop_dryer: MopDryerTrait | None = None
     customize_clean_mode: CustomizeCleanModeTrait | None = None
+    dock_info: DockInfoTrait | None = None
 
     def __init__(
         self,

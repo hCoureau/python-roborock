@@ -25,19 +25,26 @@ Cloud and Network.
 
 ### Reading dock version metadata
 
-On V1 devices whose dock supports `get_dock_info`, read the reported version
-explicitly:
+The optional V1 `dock_info` trait is available for dock type 41 (`f1_dock`),
+observed on Qrevo 2 Pro Series (`roborock.vacuum.a294`). This conservative gate
+does not establish whether other dock families support `get_dock_info`.
+Refresh the trait explicitly to read the reported version:
 
 ```python
-dock_info = await device.v1_properties.command.get_dock_info()
-print(dock_info.version)
+if device.v1_properties and device.v1_properties.dock_info:
+    await device.v1_properties.dock_info.refresh()
+    print(device.v1_properties.dock_info.version)
 ```
 
 `DockInfo.version` is an opaque string, such as `"0060"`, or `None` when the
 dock omits it or reports null. Strings are preserved verbatim, including leading
 zeros. This metadata is distinct from the app or robot firmware version and
 does not indicate whether an update is available. The reader excludes the dock
-serial number and runs only when called; discovery does not poll it.
+serial number from its model, serialization and parsing errors. Generic protocol
+DEBUG logging is unchanged. Startup only discovers the trait; its version remains
+`None` until a consumer refreshes it. There is no automatic polling or physical
+write command. RPC failures, including unsupported-feature errors, propagate to
+the caller; a failed refresh preserves previously read metadata.
 
 ## Background: Understanding Device Protocols
 
