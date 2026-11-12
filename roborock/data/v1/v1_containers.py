@@ -610,3 +610,10 @@ class FlowLedStatus(RoborockBase):
 @dataclass
 class LedStatus(RoborockBase):
     status: int = 0
+
+
+@dataclass
+class FollowGroundMaterialStatus(RoborockBase):
+    """Whether cleaning follows the direction of the floor material (e.g. wood grain)."""
+
+    status: int | None = None

@@ -79,6 +79,7 @@ from . import (
     do_not_disturb,
     dust_collection_mode,
     flow_led_status,
+    follow_ground_material,
     home,
     led_status,
     map_content,
@@ -104,6 +105,7 @@ from .device_features import DeviceFeaturesTrait
 from .do_not_disturb import DoNotDisturbTrait
 from .dust_collection_mode import DustCollectionModeTrait
 from .flow_led_status import FlowLedStatusTrait
+from .follow_ground_material import FollowGroundMaterialTrait
 from .home import HomeTrait
 from .led_status import LedStatusTrait
 from .map_content import MapContentTrait
@@ -133,6 +135,7 @@ __all__ = [
     "do_not_disturb",
     "dust_collection_mode",
     "flow_led_status",
+    "follow_ground_material",
     "home",
     "led_status",
     "map_content",
@@ -176,6 +179,7 @@ class PropertiesApi(Trait):
     child_lock: ChildLockTrait | None = None
     led_status: LedStatusTrait | None = None
     flow_led_status: FlowLedStatusTrait | None = None
+    follow_ground_material: FollowGroundMaterialTrait | None = None
     valley_electricity_timer: ValleyElectricityTimerTrait | None = None
     dust_collection_mode: DustCollectionModeTrait | None = None
     wash_towel_mode: WashTowelModeTrait | None = None

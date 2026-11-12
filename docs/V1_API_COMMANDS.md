@@ -33,6 +33,7 @@ Commands can have multiple parameters that can change from one model to another.
 * [get_dnd_timer](#get_dnd_timer)
 * [get_dust_collection_mode](#get_dust_collection_mode)
 * [get_clean_follow_ground_material_status](#get_clean_follow_ground_material_status)
+* [set_clean_follow_ground_material_status](#set_clean_follow_ground_material_status)
 * [get_identify_furniture_status](#get_identify_furniture_status)
 * [get_identify_ground_material_status](#get_identify_ground_material_status)
 * [get_led_status](#get_led_status)
@@ -1739,13 +1740,27 @@ Returns: Integer code representing the water box mode (e.g. `200`, `201`, `202`,
 
 ### get_clean_follow_ground_material_status
 
-Description:
+Description: Returns whether cleaning follows the direction of the floor material (for example wood grain).
 
 Parameters: None
+
+Return example:
+
+```json
+    {'status': 0}
+```
 
 **Supported devices:**
 
 * Roborock S8 Pro Ultra: ✅
+
+### set_clean_follow_ground_material_status
+
+Description: Turns cleaning along the floor material direction on (`1`) or off (`0`).
+
+Parameters: `{"status": 1}`
+
+Returns ok or error
 
 ### set_water_box_custom_mode
 
