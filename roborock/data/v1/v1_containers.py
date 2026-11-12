@@ -3,7 +3,7 @@ import logging
 import warnings
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import Any, Self
 
 from roborock.const import (
     CLEANING_BRUSH_REPLACE_TIME,
@@ -629,6 +629,20 @@ class DeviceTimer(RoborockBase):
     Older firmware reports an empty string; newer firmware reports an object of
     clean settings, kept with all of its keys.
     """
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self | None:
+        """Create a timer, keeping object parameters as dictionaries.
+
+        The generic union conversion would turn an object into its string form.
+        """
+        timer = super().from_dict(data)
+        if timer is None:
+            return None
+        params = data.get("actionParams", data.get("action_params"))
+        if isinstance(params, dict):
+            timer.action_params = params
+        return timer
 
     @property
     def enabled(self) -> bool:
