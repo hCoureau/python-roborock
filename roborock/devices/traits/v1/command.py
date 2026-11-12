@@ -1,7 +1,6 @@
 from typing import Any
 
 from roborock import RoborockCommand
-from roborock.exceptions import RoborockParsingException
 from roborock.protocols.v1_protocol import ParamsType
 
 
@@ -37,26 +36,3 @@ class CommandTrait:
         if not self._rpc_channel:
             raise ValueError("Device trait in invalid state")
         return await self._rpc_channel.send_command(command, params=params)
-
-    async def get_robot_timezone(self) -> str:
-        """Read the robot's TZ identifier without falling back to app or host settings."""
-        response = await self.send(RoborockCommand.GET_TIMEZONE)
-        if (
-            not isinstance(response, list)
-            or len(response) != 1
-            or not isinstance(response[0], str)
-            or not response[0].strip()
-        ):
-            raise RoborockParsingException(
-                trait_name=type(self).__name__,
-                command=RoborockCommand.GET_TIMEZONE,
-                payload=response,
-                inner_error="Expected a singleton list containing a nonempty timezone string",
-            )
-        return response[0]
-
-    async def set_robot_timezone(self, timezone: str) -> None:
-        """Set the robot's TZ/IANA identifier; firmware decides which identifiers it accepts."""
-        if not timezone.strip():
-            raise ValueError("Timezone identifier must not be empty or whitespace")
-        await self.send(RoborockCommand.SET_TIMEZONE, params=[timezone])
