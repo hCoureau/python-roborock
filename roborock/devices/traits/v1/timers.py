@@ -19,9 +19,11 @@ def _parse_timer(entry: object) -> DeviceTimer:
     if not isinstance(schedule, list) or not schedule or not isinstance(schedule[0], str):
         raise ValueError(f"Unexpected timer schedule: {entry!r}")
     action_spec = schedule[1] if len(schedule) > 1 else None
-    if not isinstance(action_spec, list) or not action_spec or not isinstance(action_spec[0], str):
+    if not isinstance(action_spec, list) or len(action_spec) < 2 or not isinstance(action_spec[0], str):
         raise ValueError(f"Unexpected timer action: {entry!r}")
-    action_params = action_spec[1] if len(action_spec) > 1 else None
+    action_params = action_spec[1]
+    if not isinstance(action_params, str | dict):
+        raise ValueError(f"Unexpected timer action parameters: {entry!r}")
     return DeviceTimer(
         timer_id=str(timer_id),
         state=state,
