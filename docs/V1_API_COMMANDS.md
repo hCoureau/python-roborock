@@ -32,6 +32,8 @@ Commands can have multiple parameters that can change from one model to another.
 * [get_customize_clean_mode](#get_customize_clean_mode)
 * [get_dnd_timer](#get_dnd_timer)
 * [get_dust_collection_mode](#get_dust_collection_mode)
+* [get_dust_collection_switch_status](#get_dust_collection_switch_status)
+* [set_dust_collection_switch_status](#set_dust_collection_switch_status)
 * [get_clean_follow_ground_material_status](#get_clean_follow_ground_material_status)
 * [get_identify_furniture_status](#get_identify_furniture_status)
 * [get_identify_ground_material_status](#get_identify_ground_material_status)
@@ -1206,6 +1208,26 @@ Source: Roborock S7 MaxV Ultra
 
 * Roborock S7 MaxV Ultra: ✅
 * Roborock S8 Pro Ultra: ✅
+
+### get_dust_collection_switch_status
+
+Description: Returns whether the dock empties the dust bin automatically (`1`) or not (`0`).
+
+Parameters: None
+
+Return example:
+
+```json
+    {'status': 1}
+```
+
+### set_dust_collection_switch_status
+
+Description: Turns automatic dust emptying on (`1`) or off (`0`).
+
+Parameters: `{"status": 1}`
+
+Returns ok or error
 
 
 ### set_dust_collection_mode

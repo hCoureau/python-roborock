@@ -610,3 +610,10 @@ class FlowLedStatus(RoborockBase):
 @dataclass
 class LedStatus(RoborockBase):
     status: int = 0
+
+
+@dataclass
+class DustCollectionSwitchStatus(RoborockBase):
+    """Whether the dock empties the robot's dust bin automatically."""
+
+    status: int | None = None
