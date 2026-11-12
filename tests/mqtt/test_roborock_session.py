@@ -2,12 +2,15 @@
 
 import asyncio
 import copy
+import dataclasses
 import datetime
+import ssl
 from collections.abc import Callable, Generator
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiomqtt
+import paho.mqtt.client as paho_client
 import pytest
 
 from roborock.diagnostics import Diagnostics
@@ -15,6 +18,9 @@ from roborock.mqtt.roborock_session import RoborockMqttSession, create_mqtt_sess
 from roborock.mqtt.session import MqttSessionException, MqttSessionUnauthorized
 from tests import mqtt_packet
 from tests.fixtures.mqtt import FAKE_PARAMS, Subscriber
+
+# Bound before the autouse fixtures replace the paho client class.
+PAHO_TLS_SET = paho_client.Client.tls_set
 
 pytest_plugins = [
     "tests.fixtures.logging_fixtures",
@@ -559,3 +565,36 @@ async def test_session_defers_reconnect_when_idle(
         assert params.diagnostics.as_dict().get("reconnect_deferred", 0) >= 1
     finally:
         await session.close()
+
+
+@pytest.mark.parametrize(
+    ("verify_tls", "verify_mode", "check_hostname"),
+    [(True, ssl.CERT_REQUIRED, True), (False, ssl.CERT_NONE, False)],
+)
+async def test_tls_parameters_without_tlsv1_2_constant(
+    monkeypatch: pytest.MonkeyPatch,
+    mock_client: AsyncMock,
+    mock_aenter_client: AsyncMock,
+    verify_tls: bool,
+    verify_mode: ssl.VerifyMode,
+    check_hostname: bool,
+) -> None:
+    """TLS settings work when ssl has no PROTOCOL_TLSv1_2, as with OpenSSL 4 builds."""
+    client_factory = Mock()
+    client_factory.return_value.__aenter__ = mock_aenter_client
+    client_factory.return_value.__aexit__ = AsyncMock()
+    params = dataclasses.replace(FAKE_PARAMS, tls=True, verify_tls=verify_tls)
+
+    with patch("roborock.mqtt.roborock_session.aiomqtt.Client", client_factory):
+        session = await create_mqtt_session(params)
+        await session.close()
+
+    tls_params = client_factory.call_args.kwargs["tls_params"]
+    monkeypatch.delattr(ssl, "PROTOCOL_TLSv1_2", raising=False)
+    paho_instance = Mock()
+    PAHO_TLS_SET(paho_instance, **dataclasses.asdict(tls_params))
+
+    context = paho_instance.tls_set_context.call_args.args[0]
+    assert isinstance(context, ssl.SSLContext)
+    assert context.verify_mode == verify_mode
+    assert context.check_hostname is check_hostname
