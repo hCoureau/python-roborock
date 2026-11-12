@@ -22,6 +22,8 @@ from roborock.data.v1.v1_containers import (
     CleanSummary,
     CleanSummaryWithDetail,
     Consumable,
+    DeviceTimer,
+    DeviceTimers,
     DnDTimer,
     StatusV2,
     get_dock_state,
@@ -472,3 +474,28 @@ def test_missing_new_feature_info() -> None:
     )
     assert app_init_status.new_feature_info == 0
     assert app_init_status.new_feature_info_str == ""
+
+
+@pytest.mark.parametrize(
+    "action_params",
+    ["", {"segments": "0", "repeat": 1, "unknown_key": {"nested": [1, 2]}}],
+)
+def test_device_timers_round_trip(action_params: str | dict) -> None:
+    """Timers survive serialization with their parameters unchanged."""
+    timers = DeviceTimers(
+        timers=[
+            DeviceTimer(
+                timer_id="1700000000000",
+                state="on",
+                cron="30 9 * * 1",
+                action="start_clean",
+                action_params=action_params,
+            )
+        ]
+    )
+
+    restored = DeviceTimers.from_dict(timers.as_dict())
+
+    assert restored == timers
+    assert restored is not None and restored.timers is not None
+    assert type(restored.timers[0].action_params) is type(action_params)
