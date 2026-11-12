@@ -42,7 +42,9 @@ async def test_unsupported_for_other_docks(
 
 
 @pytest.mark.parametrize(("dock_type_code"), [COLLECTING_DOCK])
-@pytest.mark.parametrize(("response", "expected"), [({"status": 1}, True), ({"status": 0}, False)])
+@pytest.mark.parametrize(
+    ("response", "expected"), [({"status": 1}, True), ({"status": 2}, True), ({"status": 0}, False)]
+)
 async def test_refresh(
     dust_collection_switch: DustCollectionSwitchTrait | None,
     mock_rpc_channel: AsyncMock,
@@ -58,6 +60,7 @@ async def test_refresh(
 
     mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.GET_DUST_COLLECTION_SWITCH_STATUS)
     assert dust_collection_switch.is_on is expected
+    assert dust_collection_switch.status == response["status"]
 
 
 @pytest.mark.parametrize(("dock_type_code"), [COLLECTING_DOCK])
@@ -68,6 +71,7 @@ async def test_enable_and_disable(
 ) -> None:
     """Enabling and disabling send the status value and update the trait."""
     assert dust_collection_switch is not None
+    assert not dust_collection_switch.is_on
 
     await dust_collection_switch.disable()
     assert not dust_collection_switch.is_on

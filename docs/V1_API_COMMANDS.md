@@ -1211,7 +1211,8 @@ Source: Roborock S7 MaxV Ultra
 
 ### get_dust_collection_switch_status
 
-Description: Returns whether the dock empties the dust bin automatically (`1`) or not (`0`).
+Description: Returns how often the dock empties the dust bin automatically: `0` off, `1` after each clean. Some docks
+offer more frequencies (a Qrevo 2 Pro app shows Off, Balanced and High; Balanced reads as `1`).
 
 Parameters: None
 
@@ -1223,7 +1224,7 @@ Return example:
 
 ### set_dust_collection_switch_status
 
-Description: Turns automatic dust emptying on (`1`) or off (`0`).
+Description: Sets automatic dust emptying to after each clean (`1`) or off (`0`).
 
 Parameters: `{"status": 1}`
 
