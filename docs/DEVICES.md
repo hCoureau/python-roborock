@@ -48,10 +48,8 @@ reported_timezone = await command.get_robot_timezone()
 ```
 
 A timeout or a failed optional readback leaves the device result unknown. The
-trait adds no rollback or retry. Existing adaptive RPC can retransmit a SET
-through MQTT after a local timeout, so this API does not guarantee one wire
-attempt. [PR #1027](https://github.com/Python-roborock/python-roborock/pull/1027)
-addresses that transport behavior separately.
+trait adds no rollback or retry. Transport-level retries may resend a command,
+so this API does not guarantee one wire attempt.
 
 Changing the native timezone may affect native schedules. These methods do not
 reinterpret timers or certify DST or overnight schedule behavior.
