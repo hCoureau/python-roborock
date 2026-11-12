@@ -610,3 +610,34 @@ class FlowLedStatus(RoborockBase):
 @dataclass
 class LedStatus(RoborockBase):
     status: int = 0
+
+
+@dataclass
+class DeviceTimer(RoborockBase):
+    """A schedule stored on the device and returned by `get_timer`."""
+
+    timer_id: str
+    state: str
+    """Raw state reported by the device, normally `"on"` or `"off"`; other values are kept as reported."""
+    cron: str
+    """Cron expression `minute hour day month weekday` in the device's time zone."""
+    action: str
+    """Command run by the schedule, such as `start_clean`."""
+    action_params: Any = None
+    """Command parameters exactly as reported by the device.
+
+    The type varies with firmware (an empty string on older devices, an object of
+    clean settings on newer ones), so it is kept as the raw wire value.
+    """
+
+    @property
+    def enabled(self) -> bool:
+        """Return whether the schedule is switched on."""
+        return self.state == "on"
+
+
+@dataclass
+class DeviceTimers(RoborockBase):
+    """Schedules stored on the device."""
+
+    timers: list[DeviceTimer] | None = None
