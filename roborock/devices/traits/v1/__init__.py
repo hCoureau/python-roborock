@@ -71,6 +71,7 @@ from roborock.web_api import UserWebApiClient
 from . import (
     child_lock,
     clean_summary,
+    collision_avoidance,
     command,
     common,
     consumeable,
@@ -96,6 +97,7 @@ from . import (
 )
 from .child_lock import ChildLockTrait
 from .clean_summary import CleanSummaryTrait
+from .collision_avoidance import CollisionAvoidanceTrait
 from .command import CommandTrait
 from .common import V1TraitMixin
 from .consumeable import ConsumableTrait
@@ -125,6 +127,7 @@ __all__ = [
     "PropertiesApi",
     "child_lock",
     "clean_summary",
+    "collision_avoidance",
     "command",
     "common",
     "consumeable",
@@ -174,6 +177,7 @@ class PropertiesApi(Trait):
 
     # Optional features that may not be supported on all devices
     child_lock: ChildLockTrait | None = None
+    collision_avoidance: CollisionAvoidanceTrait | None = None
     led_status: LedStatusTrait | None = None
     flow_led_status: FlowLedStatusTrait | None = None
     valley_electricity_timer: ValleyElectricityTimerTrait | None = None
@@ -295,6 +299,16 @@ class PropertiesApi(Trait):
             customize_clean_mode._rpc_channel = self._get_rpc_channel(customize_clean_mode)  # type: ignore[assignment]
             self.customize_clean_mode = customize_clean_mode
 
+        # Two-level collision avoidance uses undocumented values, so only on/off devices get the switch.
+        if (
+            self.collision_avoidance is None
+            and self._is_supported(CollisionAvoidanceTrait, "collision_avoidance", dock_features)
+            and not self.device_features.is_two_gears_no_collision_supported
+        ):
+            collision_avoidance = CollisionAvoidanceTrait()
+            collision_avoidance._rpc_channel = self._get_rpc_channel(collision_avoidance)
+            self.collision_avoidance = collision_avoidance
+
         if self.obstacle_photos is None and self._is_supported(ObstaclePhotoTrait, "obstacle_photos", dock_features):
             obstacle_photos = ObstaclePhotoTrait(self._rpc_channel)
             obstacle_photos._rpc_channel = self._get_rpc_channel(obstacle_photos)
@@ -311,7 +325,7 @@ class PropertiesApi(Trait):
 
             # Union args may not be in declared order
             item_type = union_args[0] if union_args[1] is type(None) else union_args[1]
-            if item_type is ObstaclePhotoTrait:
+            if item_type is ObstaclePhotoTrait or item_type is CollisionAvoidanceTrait:
                 continue
             if not self._is_supported(item_type, item.name, dock_features):
                 _LOGGER.debug("Trait '%s' not supported, skipping", item.name)

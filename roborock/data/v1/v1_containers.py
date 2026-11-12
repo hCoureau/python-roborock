@@ -610,3 +610,10 @@ class FlowLedStatus(RoborockBase):
 @dataclass
 class LedStatus(RoborockBase):
     status: int = 0
+
+
+@dataclass
+class CollisionAvoidStatus(RoborockBase):
+    """Collision-avoidance navigation setting (fewer bumps into furniture)."""
+
+    status: int | None = None
