@@ -36,8 +36,10 @@ await device.v1_properties.smart_wash_params.set_params(RoborockSmartWashMode.by
 ```
 
 `by_time` (`smart_wash: 0`) washes after a fixed cleaning time of `wash_interval`
-seconds; `by_room` (`smart_wash: 1`) washes after each room. Other reported values,
-such as `2`, are kept in `smart_wash` and reported as `unknown`; they cannot be
+seconds; `by_room` (`smart_wash: 1`) washes after each room; `smart` (`smart_wash: 2`)
+adjusts the frequency to the water left in the tank (shown as "Smart Mop Wash" by the
+Qrevo 2 Pro app while it reports `2`). Docks without the smart option may reject it.
+Other values are kept in `smart_wash` and reported as `unknown`; they cannot be
 written, and setting a mode replaces them. `wash_interval` must be positive; this
 library input rule does not establish the range each device accepts. The setter
 sends both values and then refreshes the trait. Command or refresh failures

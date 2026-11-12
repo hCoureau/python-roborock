@@ -722,7 +722,7 @@ Parameters: None
 
 Returns:
 
-        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room
+        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room, 2 adjusts to the water left in the tank (Smart Mop Wash)
 
         wash_interval: The interval in seconds between washes
 
@@ -743,7 +743,7 @@ Description: Sets the smartwash parameters
 
 Parameters:
 
-        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room
+        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room, 2 adjusts to the water left in the tank (Smart Mop Wash)
 
         wash_interval: The interval in seconds between washes
 

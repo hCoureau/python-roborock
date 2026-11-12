@@ -397,6 +397,8 @@ class RoborockSmartWashMode(RoborockEnum):
     """Wash after a fixed cleaning time, set by `wash_interval` in seconds."""
     by_room = 1
     """Wash after each room."""
+    smart = 2
+    """Adjust the wash frequency to the remaining water in the tank ("Smart Mop Wash" in the app)."""
 
 
 class RoborockDockDustCollectionModeCode(RoborockEnum):

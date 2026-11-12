@@ -21,7 +21,7 @@ class SmartWashParamsTrait(SmartWashParams, common.V1TraitMixin):
     def mode(self) -> RoborockSmartWashMode | None:
         """Return when the dock washes the mop, or `unknown` for values without documented meaning.
 
-        The raw `smart_wash` value is kept unchanged; for example some docks report `2`.
+        The raw `smart_wash` value is kept unchanged.
         """
         if self.smart_wash is None:
             return None

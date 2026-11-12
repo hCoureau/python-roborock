@@ -61,7 +61,8 @@ async def test_smart_wash_available(
 
 @pytest.mark.parametrize("dock_type_code", dock_types_with_capability("is_washable"))
 @pytest.mark.parametrize(
-    ("mode", "smart_wash"), [(RoborockSmartWashMode.by_time, 0), (RoborockSmartWashMode.by_room, 1)]
+    ("mode", "smart_wash"),
+    [(RoborockSmartWashMode.by_time, 0), (RoborockSmartWashMode.by_room, 1), (RoborockSmartWashMode.smart, 2)],
 )
 @pytest.mark.parametrize("wash_interval", [1, 1200])
 async def test_set_params(
@@ -153,7 +154,8 @@ async def test_set_params_nonpositive_interval(
     [
         (0, RoborockSmartWashMode.by_time),
         (1, RoborockSmartWashMode.by_room),
-        (2, RoborockSmartWashMode.unknown),
+        (2, RoborockSmartWashMode.smart),
+        (7, RoborockSmartWashMode.unknown),
     ],
 )
 async def test_mode(
