@@ -47,6 +47,7 @@ Commands can have multiple parameters that can change from one model to another.
 * [get_smart_wash_params](#get_smart_wash_params)
 * [get_sound_progress](#get_sound_progress)
 * [get_status](#get_status)
+* [get_timer](#get_timer)
 * [get_timezone](#get_timezone)
 * [get_turn_server](#get_turn_server)
 * [get_valley_electricity_timer](#get_valley_electricity_timer)
@@ -1544,6 +1545,23 @@ Parameters:
 Description:
 
 Parameters:
+
+### get_timer
+
+Description: Returns the schedules stored on the device. Each entry is `[id, state, [cron, [command, params]]]`;
+`state` is `"on"` or `"off"` and the cron expression is in the device's time zone. Older firmware reports `params`
+as an empty string, newer firmware as an object of clean settings. An empty list only means that the device stores no
+schedules locally.
+
+Parameters: None
+
+Return example:
+
+```json
+    [["1488667794112", "off", ["49 22 * * 6", ["start_clean", ""]]]]
+```
+
+Use `upd_timer` with `[id, "on"]` or `[id, "off"]` to switch a schedule on or off.
 
 ### get_timezone
 
