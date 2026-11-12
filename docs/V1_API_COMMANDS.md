@@ -722,7 +722,7 @@ Parameters: None
 
 Returns:
 
-        smart_wash: 0 is off, 1 is on
+        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room
 
         wash_interval: The interval in seconds between washes
 
@@ -743,7 +743,7 @@ Description: Sets the smartwash parameters
 
 Parameters:
 
-        smart_wash: 0 is off, 1 is on
+        smart_wash: 0 washes after `wash_interval` seconds of cleaning, 1 washes after each room
 
         wash_interval: The interval in seconds between washes
 

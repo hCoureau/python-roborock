@@ -389,6 +389,16 @@ class RoborockDockTypeCode(RoborockEnum):
     type_49_dock = 49
 
 
+class RoborockSmartWashMode(RoborockEnum):
+    """When the dock washes the mop during a clean (`smart_wash` in `get_smart_wash_params`)."""
+
+    unknown = -1
+    by_time = 0
+    """Wash after a fixed cleaning time, set by `wash_interval` in seconds."""
+    by_room = 1
+    """Wash after each room."""
+
+
 class RoborockDockDustCollectionModeCode(RoborockEnum):
     """Describes the dust collection mode of the vacuum cleaner."""
 

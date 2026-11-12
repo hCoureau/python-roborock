@@ -25,24 +25,24 @@ Cloud and Network.
 
 ### V1 smart-wash settings
 
-When `device.v1_properties.smart_wash_params` is available, set both legacy
-settings explicitly:
+When `device.v1_properties.smart_wash_params` is available, `mode` reports when
+the dock washes the mop during a clean and `set_params` sets it together with the
+wash interval:
 
 ```python
-await device.v1_properties.smart_wash_params.set_params(smart_wash=True, wash_interval=1200)
+from roborock.data import RoborockSmartWashMode
+
+await device.v1_properties.smart_wash_params.set_params(RoborockSmartWashMode.by_time, wash_interval=1200)
 ```
 
-`smart_wash` writes the documented `0` (off) or `1` (on) value. `wash_interval`
-is in seconds and must be positive; this library input rule does not establish
-the interval range accepted by each device. The setter sends the complete pair
-and then refreshes the trait with the device-reported values. Command or refresh
-failures propagate and leave the cached values unchanged; a refresh failure
-does not establish whether the device applied the settings.
-
-The existing [command documentation](V1_API_COMMANDS.md#set_smart_wash_params)
-describes these settings for the S8 Pro Ultra. Device support varies. Read values
-such as `smart_wash == 2` remain integers with unspecified semantics; this
-on/off setter does not configure those additional modes.
+`by_time` (`smart_wash: 0`) washes after a fixed cleaning time of `wash_interval`
+seconds; `by_room` (`smart_wash: 1`) washes after each room. Other reported values,
+such as `2`, are kept in `smart_wash` and reported as `unknown`; they cannot be
+written, and setting a mode replaces them. `wash_interval` must be positive; this
+library input rule does not establish the range each device accepts. The setter
+sends both values and then refreshes the trait. Command or refresh failures
+propagate and leave the cached values unchanged; a refresh failure does not
+establish whether the device applied the settings.
 
 ## Background: Understanding Device Protocols
 
