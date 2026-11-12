@@ -90,6 +90,7 @@ from . import (
     routines,
     smart_wash_params,
     status,
+    timezone,
     valley_electricity_timer,
     volume,
     wash_towel_mode,
@@ -115,6 +116,7 @@ from .rooms import RoomsTrait
 from .routines import RoutinesTrait
 from .smart_wash_params import SmartWashParamsTrait
 from .status import StatusTrait
+from .timezone import TimezoneTrait
 from .valley_electricity_timer import ValleyElectricityTimerTrait
 from .volume import SoundVolumeTrait
 from .wash_towel_mode import WashTowelModeTrait
@@ -144,6 +146,7 @@ __all__ = [
     "routines",
     "smart_wash_params",
     "status",
+    "timezone",
     "valley_electricity_timer",
     "volume",
     "wash_towel_mode",
@@ -163,6 +166,7 @@ class PropertiesApi(Trait):
     dnd: DoNotDisturbTrait
     clean_summary: CleanSummaryTrait
     sound_volume: SoundVolumeTrait
+    timezone: TimezoneTrait
     rooms: RoomsTrait
     maps: MapsTrait
     map_content: MapContentTrait

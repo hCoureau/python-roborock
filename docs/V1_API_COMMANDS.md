@@ -1553,8 +1553,11 @@ Parameters: None
 
 Returns: A singleton list containing the robot's TZ identifier, e.g., `["America/Los_Angeles"]`.
 
-`command.get_robot_timezone()` returns that identifier as a string. It does not
-substitute the app's timezone or a host setting if the request fails.
+Call `await device.v1_properties.timezone.refresh()` to read the robot's
+identifier into `device.v1_properties.timezone.identifier`. The trait does not
+read during discovery or substitute app/host settings if the request fails.
+Before the first successful refresh, the identifier is `None`; a failed refresh
+preserves the last reported value.
 
 **Supported devices:**
 
@@ -1568,8 +1571,14 @@ Description: Sets the robot's time zone.
 
 Parameters: A singleton list containing a TZ/IANA identifier, e.g., `["Europe/Berlin"]`.
 
-`command.set_robot_timezone("Europe/Berlin")` sends this request and returns
-`None` after an acknowledgment. Firmware decides which identifiers it accepts.
+`await device.v1_properties.timezone.set_timezone("Europe/Berlin")` sends this
+request and returns `None` after an acknowledgment. Firmware decides which
+identifiers it accepts. An acknowledgment clears the cached identifier to `None`;
+an explicit `refresh()` is needed for a reported readback.
+
+A failed request preserves the last report, but a timeout can leave the actual
+write outcome unknown. Sequence writes and optional readback; the trait does not
+guarantee freshness for concurrent calls or changes by other clients.
 
 
 

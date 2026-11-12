@@ -23,35 +23,44 @@ Cloud and Network.
     *   **Vacuums (B01 Q7)**: Use `device.b01_q7_properties` for Q7 series devices.
         *   The device streams full map frames on its own while cleaning, so the rendered map stays current without polling or a heartbeat. Register `device.b01_q7_properties.map_content.add_update_listener(cb)` and read `image_content` / `map_data` when notified.
 
-## Robot timezone (V1)
+### Robot timezone (V1)
 
-The command trait provides explicit robot timezone operations:
+The timezone trait provides explicit access to the robot's native timezone:
 
 ```python
-command = device.v1_properties.command
-timezone = await command.get_robot_timezone()
-await command.set_robot_timezone("Europe/Berlin")
+timezone = device.v1_properties.timezone
+await timezone.refresh()
+reported_identifier = timezone.identifier
+await timezone.set_timezone("Europe/Berlin")
 ```
 
-These methods use the robot's native TZ/IANA identifier. App locale, app-init
+The identifier is a native TZ/IANA identifier. App locale, app-init
 timezone and the host timezone are separate settings and are never used as
 fallbacks. Identifiers are preserved verbatim; firmware decides which identifiers
-it accepts. Unsupported devices report their existing RPC failure. The getter
-is not polled during discovery or initialization.
+it accepts. The trait exists for V1 vacuums, but command support depends on
+firmware. Unsupported devices report their existing RPC failure.
+Discovery and initialization do not read the timezone.
 
-The setter returns `None` after an acknowledgment and does not read back state.
-Callers can request a separate, optional readback:
+`identifier` is `None` before an explicit refresh. A successful refresh caches
+the reported identifier; a failed refresh preserves the last report. The setter
+returns `None` after an acknowledgment and clears `identifier` to `None`, since
+the requested value has not been read back. Callers can request a separate read:
 
 ```python
-await command.set_robot_timezone("Europe/Berlin")
-reported_timezone = await command.get_robot_timezone()
+await timezone.set_timezone("Europe/Berlin")
+await timezone.refresh()
+reported_identifier = timezone.identifier
 ```
 
-A timeout or a failed optional readback leaves the device result unknown. The
-trait adds no rollback or retry. Transport-level retries may resend a command,
-so this API does not guarantee one wire attempt.
+A failed SET preserves the last reported identifier, but a timeout can occur
+after the device applied the change. That cached report does not establish the
+write outcome. A failed readback after an accepted SET leaves `identifier` unset.
+Sequence writes and readback when the outcome matters; concurrent operations or
+changes by other clients can leave cached state stale. The trait adds no rollback
+or retry. Transport-level retries may resend a command, so this API does not
+guarantee one wire attempt.
 
-Changing the native timezone may affect native schedules. These methods do not
+Changing the native timezone may affect native schedules. The trait does not
 reinterpret timers or certify DST or overnight schedule behavior.
 
 ## Background: Understanding Device Protocols

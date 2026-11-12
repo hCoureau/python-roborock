@@ -3,7 +3,7 @@
 import pathlib
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import pytest
 from syrupy import SnapshotAssertion
@@ -18,6 +18,7 @@ from roborock.devices.transport.local_channel import LocalSession
 from roborock.exceptions import RoborockException
 from roborock.protocols.v1_protocol import SecurityData, decode_rpc_response
 from roborock.roborock_message import RoborockMessage, RoborockMessageProtocol
+from roborock.roborock_typing import RoborockCommand
 from tests import mock_data
 from tests.fixtures.channel_fixtures import FakeChannel
 
@@ -60,7 +61,11 @@ def blob_rpc_channel_fixture() -> AsyncMock:
 
 @pytest.fixture(autouse=True, name="device")
 def device_fixture(
-    channel: AsyncMock, rpc_channel: AsyncMock, mqtt_rpc_channel: AsyncMock, blob_rpc_channel: AsyncMock
+    channel: AsyncMock,
+    rpc_channel: AsyncMock,
+    mqtt_rpc_channel: AsyncMock,
+    map_rpc_channel: AsyncMock,
+    blob_rpc_channel: AsyncMock,
 ) -> RoborockDevice:
     """Fixture to set up the device for tests."""
     return RoborockDevice(
@@ -73,7 +78,7 @@ def device_fixture(
             HOME_DATA,
             rpc_channel,
             mqtt_rpc_channel,
-            AsyncMock(),
+            map_rpc_channel,
             blob_rpc_channel,
             Mock(),
             AsyncMock(),
@@ -102,6 +107,43 @@ async def test_device_connection(device: RoborockDevice, channel: AsyncMock, set
 
     await device.close()
     assert unsub.called
+
+
+async def test_timezone_is_not_read_during_device_lifecycle(
+    device: RoborockDevice,
+    channel: AsyncMock,
+    setup_rpc_channel: AsyncMock,
+    mqtt_rpc_channel: AsyncMock,
+    map_rpc_channel: AsyncMock,
+    blob_rpc_channel: AsyncMock,
+) -> None:
+    """Required timezone state adds no construction, startup or close RPC."""
+    channel.subscribe.return_value = Mock()
+    assert device.v1_properties
+    timezone = device.v1_properties.timezone
+    assert timezone.identifier is None
+    channels = (setup_rpc_channel, mqtt_rpc_channel, map_rpc_channel, blob_rpc_channel)
+    for rpc in channels:
+        rpc.send_command.assert_not_called()
+
+    await device.connect()
+
+    assert timezone.identifier is None
+    assert setup_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.APP_GET_INIT_STATUS),
+        call(RoborockCommand.GET_STATUS),
+    ]
+    for rpc in (mqtt_rpc_channel, map_rpc_channel, blob_rpc_channel):
+        rpc.send_command.assert_not_called()
+
+    await device.close()
+
+    assert setup_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.APP_GET_INIT_STATUS),
+        call(RoborockCommand.GET_STATUS),
+    ]
+    for rpc in (mqtt_rpc_channel, map_rpc_channel, blob_rpc_channel):
+        rpc.send_command.assert_not_called()
 
 
 @pytest.mark.parametrize(
