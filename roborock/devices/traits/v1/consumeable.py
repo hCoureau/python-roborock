@@ -32,6 +32,7 @@ class ConsumableAttribute(StrEnum):
     MAIN_BRUSH_WORK_TIME = "main_brush_work_time"
     STRAINER_WORK_TIME = "strainer_work_times"
     CLEANING_BRUSH_WORK_TIME = "cleaning_brush_work_times"
+    DUST_COLLECTION_WORK_TIME = "dust_collection_work_times"
 
     @classmethod
     def from_str(cls, value: str) -> Self:
