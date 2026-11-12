@@ -623,11 +623,11 @@ class DeviceTimer(RoborockBase):
     """Cron expression `minute hour day month weekday` in the device's time zone."""
     action: str
     """Command run by the schedule, such as `start_clean`."""
-    action_params: Any = None
-    """Command parameters exactly as reported by the device.
+    action_params: str | dict[str, Any]
+    """Command parameters as reported by the device.
 
-    The type varies with firmware (an empty string on older devices, an object of
-    clean settings on newer ones), so it is kept as the raw wire value.
+    Older firmware reports an empty string; newer firmware reports an object of
+    clean settings, kept with all of its keys.
     """
 
     @property

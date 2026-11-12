@@ -63,12 +63,12 @@ async def test_refresh_parses_entries(timers: TimersTrait, mock_rpc_channel: Asy
 
 async def test_refresh_keeps_unknown_state(timers: TimersTrait, mock_rpc_channel: AsyncMock) -> None:
     """An unexpected state string is preserved and reported as not enabled."""
-    mock_rpc_channel.send_command.return_value = [[1700000000000, "paused", ["0 8 * * *", ["start_clean"]]]]
+    mock_rpc_channel.send_command.return_value = [[1700000000000, "paused", ["0 8 * * *", ["start_clean", ""]]]]
 
     await timers.refresh()
 
     assert timers.timers == [
-        DeviceTimer(timer_id="1700000000000", state="paused", cron="0 8 * * *", action="start_clean")
+        DeviceTimer(timer_id="1700000000000", state="paused", cron="0 8 * * *", action="start_clean", action_params="")
     ]
     assert not timers.timers[0].enabled
 
@@ -84,6 +84,9 @@ async def test_refresh_keeps_unknown_state(timers: TimersTrait, mock_rpc_channel
         [["1700000000000", "on", ["0 8 * * *"]]],
         [["1700000000000", "on", ["0 8 * * *", []]]],
         [["1700000000000", "on", ["0 8 * * *", [5, ""]]]],
+        [["1700000000000", "on", ["0 8 * * *", ["start_clean"]]]],
+        [["1700000000000", "on", ["0 8 * * *", ["start_clean", 5]]]],
+        [LEGACY_TIMER, ["1700000000000", "on"]],
         [[None, "on", ["0 8 * * *", ["start_clean", ""]]]],
     ],
 )
