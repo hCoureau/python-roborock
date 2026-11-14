@@ -614,6 +614,6 @@ class LedStatus(RoborockBase):
 
 @dataclass
 class CollisionAvoidStatus(RoborockBase):
-    """Collision-avoidance navigation setting (fewer bumps into furniture)."""
+    """Collision avoidance setting reported by `get_collision_avoid_status`."""
 
     status: int | None = None

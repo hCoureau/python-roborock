@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Self
 
-from ..code_mappings import RoborockEnum
+from ..code_mappings import RoborockEnum, RoborockModeEnum
 
 
 class RoborockFinishReason(RoborockEnum):
@@ -444,3 +444,13 @@ class RoborockStateCode(RoborockEnum):
     zoned_clean_mop_cleaning = 6308
     zoned_clean_mop_mopping = 6309
     back_to_dock_washing_duster = 6310
+
+
+class CollisionAvoidanceMode(RoborockModeEnum):
+    """Two-level collision avoidance mode reported by `get_collision_avoid_status`.
+
+    The names follow the Roborock app labels observed on the Qrevo 2 Pro.
+    """
+
+    HIGH_COVERAGE = ("high_coverage", 1)
+    LESS_COLLISION = ("less_collision", 2)

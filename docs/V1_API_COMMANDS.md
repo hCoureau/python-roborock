@@ -1265,7 +1265,7 @@ Source: S8 Pro Ultra
 
 ### get_collision_avoid_status
 
-Description:
+Description: Returns the collision avoidance setting. The same value is reported as `collision_avoid_status` by `get_status`.
 
 Parameters: None
 
@@ -1279,15 +1279,21 @@ Return example:
     {'status': 1}
 ```
 
+The meaning of `status` depends on the device features:
+
+* On/off devices (`is_avoid_collision_supported` without `is_two_gears_no_collision_supported`): 1 = on, 0 = off.
+* Two-level devices (both features): 1 = High Coverage, 2 = Less Collision. These labels were observed in the Roborock app on the Qrevo 2 Pro.
+
 **Supported devices:**
 
 * Roborock S7 MaxV Ultra: ✅
 * Roborock S8 Pro Ultra: ✅
+* Roborock Qrevo 2 Pro: ✅
 
 
 ### set_collision_avoid_status
 
-Description: Update collision avoid status.
+Description: Update collision avoid status. Writing level 2 on two-level devices is not documented.
 
 Parameters: '{"status" :1}'
 
