@@ -20,6 +20,7 @@ from roborock.data.v1.v1_containers import (
     AppInitStatus,
     CleanRecord,
     CleanSummary,
+    CleanSummaryWithDetail,
     Consumable,
     DnDTimer,
     StatusV2,
@@ -264,6 +265,20 @@ def test_clean_summary():
     assert cs.records
     assert len(cs.records) == 2
     assert cs.records[1] == 1672458041
+
+
+def test_clean_summary_with_detail():
+    record = CleanRecord.from_dict(CLEAN_RECORD)
+    summary = CleanSummaryWithDetail(clean_time=74382, records=[1672543330], last_clean_record=record)
+
+    data = summary.as_dict()
+    assert data["cleanTime"] == 74382
+    assert data["lastCleanRecord"]["begin"] == 1672543330
+    assert data["lastCleanRecord"]["finishReason"] == 56
+
+    parsed = CleanSummaryWithDetail.from_dict(data)
+    assert parsed == summary
+    assert parsed.last_clean_record == record
 
 
 def test_clean_record():

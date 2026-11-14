@@ -1,5 +1,6 @@
 """Tests for the CleanSummary class."""
 
+import asyncio
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -252,3 +253,66 @@ async def test_get_clean_summary_no_records(
 
     # Verify the RPC call was made correctly
     mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.GET_CLEAN_SUMMARY)
+
+
+async def test_get_clean_summary_keeps_last_record_when_record_fetch_fails(
+    clean_summary_trait: CleanSummaryTrait, mock_rpc_channel: AsyncMock
+) -> None:
+    """Keep the previous clean record when fetching the latest record fails."""
+    mock_rpc_channel.send_command.side_effect = [CLEAN_SUMMARY_DATA, CLEAN_RECORD_DATA]
+    await clean_summary_trait.refresh()
+    previous_record = clean_summary_trait.last_clean_record
+    assert previous_record is not None
+
+    mock_rpc_channel.send_command.side_effect = [CLEAN_SUMMARY_DATA, RoborockException("Communication error")]
+    with pytest.raises(RoborockException, match="Communication error"):
+        await clean_summary_trait.refresh()
+
+    assert clean_summary_trait.last_clean_record == previous_record
+    assert clean_summary_trait.as_dict()["lastCleanRecord"]["begin"] == 1738864366
+
+
+async def test_get_clean_summary_clears_last_record_without_records(
+    clean_summary_trait: CleanSummaryTrait, mock_rpc_channel: AsyncMock
+) -> None:
+    """Clear the previous clean record when the summary reports no records."""
+    mock_rpc_channel.send_command.side_effect = [CLEAN_SUMMARY_DATA, CLEAN_RECORD_DATA]
+    await clean_summary_trait.refresh()
+    assert clean_summary_trait.last_clean_record is not None
+
+    mock_rpc_channel.send_command.side_effect = [[1442559, 24258125000, 296, []]]
+    await clean_summary_trait.refresh()
+
+    assert clean_summary_trait.last_clean_record is None
+    assert "lastCleanRecord" not in clean_summary_trait.as_dict()
+
+
+async def test_get_clean_summary_overlapping_refresh_keeps_newer_record(
+    clean_summary_trait: CleanSummaryTrait, mock_rpc_channel: AsyncMock
+) -> None:
+    """Keep a record stored by a concurrent refresh when a slower refresh fails to fetch its record."""
+    assert clean_summary_trait.last_clean_record is None
+    slow_summary: asyncio.Future[list] = asyncio.get_running_loop().create_future()
+    responses = [slow_summary, CLEAN_SUMMARY_DATA, CLEAN_RECORD_DATA, RoborockException("Communication error")]
+
+    async def send_command(*args: object, **kwargs: object) -> object:
+        response = responses.pop(0)
+        if isinstance(response, asyncio.Future):
+            return await response
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    mock_rpc_channel.send_command.side_effect = send_command
+
+    slow_refresh = asyncio.create_task(clean_summary_trait.refresh())
+    await asyncio.sleep(0)
+    await clean_summary_trait.refresh()
+    record = clean_summary_trait.last_clean_record
+    assert record is not None
+
+    slow_summary.set_result(CLEAN_SUMMARY_DATA)
+    with pytest.raises(RoborockException, match="Communication error"):
+        await slow_refresh
+
+    assert clean_summary_trait.last_clean_record == record
