@@ -7,6 +7,7 @@ import pytest
 from roborock.data.containers import HomeDataScene
 from roborock.devices.device import RoborockDevice
 from roborock.devices.traits.v1.routines import RoutinesTrait
+from tests.mock_data import HOME_DATA_SCENES_RAW
 
 
 @pytest.fixture(name="routines_trait")
@@ -23,6 +24,19 @@ async def test_get_routines(routines_trait: RoutinesTrait, web_api_client: Async
     assert len(routines) == 1
     assert routines[0].name == "test_scene"
     web_api_client.get_routines.assert_called_once()
+
+
+async def test_get_routines_enabled_and_type(routines_trait: RoutinesTrait, web_api_client: AsyncMock) -> None:
+    """Test that routines expose enabled and type, which are optional in the payload."""
+    web_api_client.get_routines.return_value = [
+        HomeDataScene.from_dict(HOME_DATA_SCENES_RAW[0]),
+        HomeDataScene.from_dict({"id": 2, "name": "No extra fields"}),
+    ]
+    routines = await routines_trait.get_routines()
+    assert [(r.id, r.enabled, r.type) for r in routines] == [
+        (1234567, True, "WORKFLOW"),
+        (2, None, None),
+    ]
 
 
 async def test_execute_routine(routines_trait: RoutinesTrait, web_api_client: AsyncMock) -> None:
