@@ -16,6 +16,8 @@ class LedStatusConverter(common.V1TraitDataConverter):
         """
         if not isinstance(response, list):
             raise ValueError(f"Unexpected LedStatus response format: {response!r}")
+        if not response:
+            raise ValueError("Unexpected empty LedStatus response")
         response = response[0]
         if not isinstance(response, int):
             raise ValueError(f"Unexpected LedStatus response format: {response!r}")
