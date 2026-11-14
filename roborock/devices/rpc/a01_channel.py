@@ -57,6 +57,12 @@ async def send_decoded_command(
         params: The parameters to send.
         value_encoder: A function to encode the values of the dictionary.
         qos: The MQTT QoS level. Defaults to AT_MOST_ONCE.
+
+    A query returns once every requested data point has arrived. Devices may
+    never report data points they do not support, so when the timeout expires
+    after at least one requested data point arrived, the received subset is
+    returned; such a query still waits the full timeout. A query that receives
+    none of the requested data points raises `RoborockException`.
     """
     _LOGGER.debug("Sending MQTT command: %s", params)
     roborock_message = encode_mqtt_payload(params, value_encoder)
@@ -98,8 +104,14 @@ async def send_decoded_command(
         try:
             await asyncio.wait_for(finished.wait(), timeout=_TIMEOUT)
         except TimeoutError as ex:
-            await mqtt_channel.health_manager.on_timeout()
-            raise RoborockException(f"Command timed out after {_TIMEOUT}s") from ex
+            if not result:
+                await mqtt_channel.health_manager.on_timeout()
+                raise RoborockException(f"Command timed out after {_TIMEOUT}s") from ex
+            _LOGGER.debug(
+                "Partial query response after %ss, missing data points: %s",
+                _TIMEOUT,
+                [value for value in query_values if value not in result],
+            )
     finally:
         unsub()
 

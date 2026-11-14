@@ -8,6 +8,7 @@ from Crypto.Util.Padding import unpad
 from freezegun import freeze_time
 
 from roborock.data import DyadScheduleTask
+from roborock.data.zeo.zeo_code_mappings import ZeoFeatureBits
 from roborock.devices.traits.a01 import DyadApi, ZeoApi, create
 from roborock.devices.traits.a01.device_feature import build_force_load_dp_list
 from roborock.roborock_message import RoborockDyadDataProtocol, RoborockMessageProtocol, RoborockZeoProtocol
@@ -466,6 +467,97 @@ async def test_zeo_invalid_response_value(
 
     result = await zeo_api.query_values(query)
     assert result == expected_result
+
+
+async def test_dyad_partial_query_leaves_missing_values_none(
+    dyad_api: DyadApi, fake_channel: FakeChannel, monkeypatch: pytest.MonkeyPatch
+):
+    """A data point the device does not report is None rather than a converted default."""
+    monkeypatch.setattr("roborock.devices.rpc.a01_channel._TIMEOUT", 0.01)
+    fake_channel.response_queue.append(build_a01_message({201: 3}))
+
+    result = await dyad_api.query_values([RoborockDyadDataProtocol.STATUS, RoborockDyadDataProtocol.AUTO_DRY])
+
+    assert result == {RoborockDyadDataProtocol.STATUS: "charging", RoborockDyadDataProtocol.AUTO_DRY: None}
+    assert dyad_api.values == {RoborockDyadDataProtocol.STATUS: "charging"}
+
+
+async def test_zeo_partial_query_leaves_missing_values_none(
+    zeo_api: ZeoApi, fake_channel: FakeChannel, monkeypatch: pytest.MonkeyPatch
+):
+    """Unreported data points are None instead of `False` or the first enum member."""
+    monkeypatch.setattr("roborock.devices.rpc.a01_channel._TIMEOUT", 0.01)
+    fake_channel.response_queue.append(build_a01_message({203: 1, 218: 42}))
+
+    result = await zeo_api.query_values(
+        [
+            RoborockZeoProtocol.STATE,
+            RoborockZeoProtocol.WASHING_LEFT,
+            RoborockZeoProtocol.SOFTENER_TYPE,
+            RoborockZeoProtocol.SOFTENER_EMPTY,
+        ]
+    )
+
+    assert result == {
+        RoborockZeoProtocol.STATE: "standby",
+        RoborockZeoProtocol.WASHING_LEFT: 42,
+        RoborockZeoProtocol.SOFTENER_TYPE: None,
+        RoborockZeoProtocol.SOFTENER_EMPTY: None,
+    }
+
+
+async def test_zeo_partial_query_keeps_known_values(fake_channel: FakeChannel, monkeypatch: pytest.MonkeyPatch):
+    """A partial query response does not replace previously known values."""
+    monkeypatch.setattr("roborock.devices.rpc.a01_channel._TIMEOUT", 0.01)
+    zeo_api = ZeoApi(fake_channel, initial_status={227: 1, 214: 2})  # type: ignore[arg-type]
+    fake_channel.response_queue.append(build_a01_message({203: 1}))
+
+    await zeo_api.query_values(
+        [RoborockZeoProtocol.STATE, RoborockZeoProtocol.SOFTENER_TYPE, RoborockZeoProtocol.SOFTENER_EMPTY]
+    )
+
+    assert zeo_api.values == {
+        RoborockZeoProtocol.STATE: "standby",
+        RoborockZeoProtocol.SOFTENER_TYPE: "medium",
+        RoborockZeoProtocol.SOFTENER_EMPTY: True,
+    }
+
+
+async def test_zeo_partial_query_keeps_known_values_when_started(
+    zeo_api: ZeoApi, fake_channel: FakeChannel, monkeypatch: pytest.MonkeyPatch
+):
+    """After start(), a partial query response does not replace previously known values."""
+    monkeypatch.setattr("roborock.devices.rpc.a01_channel._TIMEOUT", 0.01)
+    force_load_response = {int(dp): 0 for dp in build_force_load_dp_list(None)} | {227: 1, 214: 2}
+    fake_channel.response_queue.append(build_a01_message(force_load_response))
+    await zeo_api.start()
+    fake_channel.response_queue.append(build_a01_message({203: 1}))
+
+    await zeo_api.query_values(
+        [RoborockZeoProtocol.STATE, RoborockZeoProtocol.SOFTENER_TYPE, RoborockZeoProtocol.SOFTENER_EMPTY]
+    )
+
+    assert zeo_api.values[RoborockZeoProtocol.STATE] == "standby"
+    assert zeo_api.values[RoborockZeoProtocol.SOFTENER_TYPE] == "medium"
+    assert zeo_api.values[RoborockZeoProtocol.SOFTENER_EMPTY] is True
+
+
+async def test_zeo_start_without_feature_bits(
+    zeo_api: ZeoApi, fake_channel: FakeChannel, monkeypatch: pytest.MonkeyPatch
+):
+    """Start succeeds when the device omits FEATURE_BITS; no feature is reported as supported."""
+    monkeypatch.setattr("roborock.devices.rpc.a01_channel._TIMEOUT", 0.01)
+    force_load_response = {
+        int(dp): 0 for dp in build_force_load_dp_list(None) if dp != RoborockZeoProtocol.FEATURE_BITS
+    }
+    fake_channel.response_queue.append(build_a01_message(force_load_response))
+
+    await zeo_api.start()
+
+    assert zeo_api.values[RoborockZeoProtocol.STATE] == "null"
+    assert RoborockZeoProtocol.FEATURE_BITS not in zeo_api.values
+    assert not any(zeo_api.supports(feature) for feature in ZeoFeatureBits)
+    assert len(fake_channel.published_messages) == 1
 
 
 async def test_dyad_api_set_value(dyad_api: DyadApi, fake_channel: FakeChannel):
