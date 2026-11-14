@@ -15,7 +15,15 @@ from roborock.data.v1 import (
     RoborockErrorCode,
     RoborockStateCode,
 )
-from roborock.data.v1.v1_code_mappings import ClearWaterBoxStatus, DirtyWaterBoxStatus, DustBagStatus
+from roborock.data.v1.v1_code_mappings import (
+    ClearWaterBoxStatus,
+    DirtyWaterBoxStatus,
+    DustBagStatus,
+    RoborockCleanType,
+    RoborockFinishReason,
+    RoborockInCleaning,
+    RoborockStartType,
+)
 from roborock.data.v1.v1_containers import (
     AppInitStatus,
     CleanRecord,
@@ -229,6 +237,16 @@ def test_status_v2_uses_canonical_state_and_error_names() -> None:
     assert s.error_code_name == "mopping_roller_1"
 
 
+def test_status_v2_unknown_codes() -> None:
+    """Unrecognized error and cleaning codes decode as unknown, not as no error or complete."""
+    s = StatusV2.from_dict({**STATUS, "error_code": 57, "in_cleaning": 4, "dock_error_status": 9})
+
+    assert s.error_code is RoborockErrorCode.unknown
+    assert s.error_code_name == "unknown"
+    assert s.in_cleaning is RoborockInCleaning.unknown
+    assert s.dock_error_status is RoborockDockErrorCode.unknown
+
+
 def test_status_v2_current_map() -> None:
     """Test the current map logic based on map status for StatusV2."""
     s = StatusV2.from_dict(STATUS)
@@ -282,6 +300,15 @@ def test_clean_record():
     assert cr.avoid_count == 19
     assert cr.wash_count == 2
     assert cr.map_flag == 0
+
+
+def test_clean_record_unknown_codes() -> None:
+    """Unrecognized clean record codes decode as unknown, not as the first member."""
+    cr = CleanRecord.from_dict({**CLEAN_RECORD, "finish_reason": 78, "clean_type": 9, "start_type": 999})
+
+    assert cr.finish_reason is RoborockFinishReason.unknown
+    assert cr.clean_type is RoborockCleanType.unknown
+    assert cr.start_type is RoborockStartType.unknown
 
 
 def test_no_value():

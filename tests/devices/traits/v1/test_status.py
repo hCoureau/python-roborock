@@ -184,6 +184,72 @@ async def test_resolve_error_no_error(status_trait: StatusTrait, mock_rpc_channe
     mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.GET_STATUS)
 
 
+@pytest.mark.parametrize(
+    ("dock_error_status", "error_code", "expected_code"),
+    [
+        (
+            RoborockDockErrorCode.water_empty.value,
+            RoborockErrorCode.none.value,
+            RoborockDockErrorCode.water_empty.value,
+        ),
+        (RoborockDockErrorCode.ok.value, RoborockErrorCode.bumper_stuck.value, RoborockErrorCode.bumper_stuck.value),
+        (9, RoborockErrorCode.bumper_stuck.value, RoborockErrorCode.bumper_stuck.value),
+        (RoborockDockErrorCode.water_empty.value, 57, RoborockDockErrorCode.water_empty.value),
+    ],
+    ids=["known-dock", "known-robot", "unknown-dock-known-robot", "known-dock-unknown-robot"],
+)
+async def test_resolve_error_selects_known_error(
+    status_trait: StatusTrait,
+    mock_rpc_channel: AsyncMock,
+    dock_error_status: int,
+    error_code: int,
+    expected_code: int,
+) -> None:
+    """Test that the first known, non-zero error is resolved when no code is given."""
+    mock_rpc_channel.send_command.side_effect = [
+        {**STATUS, "dock_error_status": dock_error_status, "error_code": error_code},
+        "ok",
+        STATUS,
+    ]
+    await status_trait.refresh()
+
+    await status_trait.resolve_error()
+
+    assert mock_rpc_channel.send_command.mock_calls[1:] == [
+        call(RoborockCommand.RESOLVE_ERROR, params={"error_code": expected_code}),
+        call(RoborockCommand.GET_STATUS),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("dock_error_status", "error_code"),
+    [
+        (9, RoborockErrorCode.none.value),
+        (RoborockDockErrorCode.ok.value, 57),
+        (9, 57),
+    ],
+    ids=["unknown-dock", "unknown-robot", "unknown-both"],
+)
+async def test_resolve_error_unknown_error_requires_code(
+    status_trait: StatusTrait,
+    mock_rpc_channel: AsyncMock,
+    dock_error_status: int,
+    error_code: int,
+) -> None:
+    """Test that an unrecognised error is not resolved without an explicit code."""
+    mock_rpc_channel.send_command.return_value = {
+        **STATUS,
+        "dock_error_status": dock_error_status,
+        "error_code": error_code,
+    }
+    await status_trait.refresh()
+
+    with pytest.raises(RoborockException, match="unrecognised error code"):
+        await status_trait.resolve_error()
+
+    mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.GET_STATUS)
+
+
 async def test_resolve_error_propagates_exception(status_trait: StatusTrait, mock_rpc_channel: AsyncMock) -> None:
     """Test that exceptions from the RPC channel are propagated."""
     mock_rpc_channel.send_command.side_effect = RoborockException("invalid params")

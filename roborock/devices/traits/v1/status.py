@@ -5,7 +5,9 @@ from typing import Any
 from roborock import (
     CleaningMode,
     CleanRoutes,
+    RoborockDockErrorCode,
     RoborockDockState,
+    RoborockErrorCode,
     StatusV2,
     VacuumModes,
     WaterModes,
@@ -21,6 +23,7 @@ from roborock import (
     resolve_cleaning_mode,
 )
 from roborock.devices.traits.common import DpsDataConverter, TraitUpdateListener
+from roborock.exceptions import RoborockException
 from roborock.roborock_message import RoborockDataProtocol
 from roborock.roborock_typing import RoborockCommand
 
@@ -156,15 +159,26 @@ class StatusTrait(StatusV2, common.V1TraitMixin, TraitUpdateListener):
     async def resolve_error(self, error_code: int | None = None) -> None:
         """Resolve an error, like tapping "Resolved" in the Roborock app.
 
-        Without an explicit code this resolves the current dock error if there is one,
-        otherwise the current robot error. A dock error such as water_empty stays latched
-        on the device until it is resolved, even after the cause has been fixed.
+        Without an explicit code this resolves the current dock error if there is a known
+        one, otherwise the current robot error if there is a known one. A dock error such as
+        water_empty stays latched on the device until it is resolved, even after the cause
+        has been fixed.
+
+        An error code that this library does not recognise is never resolved automatically.
+        If no known error is present but the device reports an unrecognised error, this raises
+        `RoborockException`; pass `error_code` explicitly to resolve it.
         """
         if error_code is None:
-            if self.dock_error_status:
-                error_code = int(self.dock_error_status)
-            elif self.error_code:
-                error_code = int(self.error_code)
+            dock_error = self.dock_error_status
+            robot_error = self.error_code
+            if dock_error is not None and dock_error not in (RoborockDockErrorCode.ok, RoborockDockErrorCode.unknown):
+                error_code = int(dock_error)
+            elif robot_error is not None and robot_error not in (RoborockErrorCode.none, RoborockErrorCode.unknown):
+                error_code = int(robot_error)
+            elif dock_error is RoborockDockErrorCode.unknown or robot_error is RoborockErrorCode.unknown:
+                raise RoborockException(
+                    "The device reports an unrecognised error code; an explicit error_code is required to resolve it"
+                )
             else:
                 return
         await self.rpc_channel.send_command(RoborockCommand.RESOLVE_ERROR, params={"error_code": error_code})
