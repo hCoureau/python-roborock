@@ -17,10 +17,13 @@ from roborock import (
     get_dock_state,
     get_water_mode_mapping,
     get_water_modes,
+    get_water_slide_code,
     get_water_slide_mode_name,
+    get_water_slide_position,
     resolve_cleaning_mode,
 )
 from roborock.devices.traits.common import DpsDataConverter, TraitUpdateListener
+from roborock.exceptions import RoborockUnsupportedFeature
 from roborock.roborock_message import RoborockDataProtocol
 from roborock.roborock_typing import RoborockCommand
 
@@ -124,6 +127,23 @@ class StatusTrait(StatusV2, common.V1TraitMixin, TraitUpdateListener):
         if self._device_features_trait.is_water_slide_mode_supported:
             return get_water_slide_mode_name(self.water_box_mode)
         return self.water_mode_mapping.get(self.water_box_mode)
+
+    @property
+    def water_slide_position(self) -> int | None:
+        """Return the water slider position (1-30), or None when not set to a slider position."""
+        if not self._device_features_trait.is_water_slide_mode_supported or self.water_box_mode is None:
+            return None
+        return get_water_slide_position(self.water_box_mode)
+
+    async def set_water_slide_position(self, position: int) -> None:
+        """Set the water slider position (1-30) on devices with a water slider."""
+        if not self._device_features_trait.is_water_slide_mode_supported:
+            raise RoborockUnsupportedFeature("Water slider positions are not supported")
+        code = get_water_slide_code(position)
+        await self.rpc_channel.send_command(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[code])
+        # The device may also change the fan speed or mop route, so read them back
+        await self.refresh()
+        self._notify_update()
 
     @property
     def mop_route_name(self) -> str | None:
