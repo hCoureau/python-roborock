@@ -1310,3 +1310,79 @@ async def test_read_back_notifies_status_listeners(status_trait: StatusTrait, mo
     await asyncio.wait_for(changed.wait(), timeout=READ_BACK_TIMEOUT)
     assert status_trait.mop_mode == 301
     assert listener.call_count == 2
+
+
+@pytest.mark.parametrize(
+    ("water_box_mode", "expected_position"),
+    [
+        (221, 1),
+        (235, 15),
+        (243, 23),
+        (250, 30),
+        (200, None),
+        (204, None),
+        (209, None),
+        (210, None),
+        (220, None),
+        (251, None),
+        (None, None),
+    ],
+)
+def test_water_slide_position(water_box_mode: int | None, expected_position: int | None) -> None:
+    """Only slider codes report a position."""
+    status_trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    status_trait.water_box_mode = water_box_mode
+
+    assert status_trait.water_slide_position == expected_position
+
+
+def test_water_slide_position_without_water_slide_support() -> None:
+    """Do not interpret slider codes without the water-slide capability."""
+    status_trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=False)
+    status_trait.water_box_mode = 235
+
+    assert status_trait.water_slide_position is None
+
+
+@pytest.mark.parametrize(("position", "expected_code"), [(1, 221), (23, 243), (30, 250)])
+async def test_set_water_slide_position(mock_rpc_channel: AsyncMock, position: int, expected_code: int) -> None:
+    """Test setting the water slider position refreshes the status."""
+    status_trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    status_trait._rpc_channel = mock_rpc_channel  # type: ignore[assignment]
+    status_trait.fan_power = 108
+    status_trait.water_box_mode = 200
+    # The device can change the fan speed too, e.g. from max_plus to balanced
+    mock_rpc_channel.send_command.side_effect = ["ok", {**STATUS, "fan_power": 102, "water_box_mode": expected_code}]
+    notified: list[tuple[int | None, int | None]] = []
+    status_trait.add_update_listener(
+        lambda: notified.append((status_trait.fan_power, status_trait.water_slide_position))
+    )
+
+    await status_trait.set_water_slide_position(position)
+
+    assert mock_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.SET_WATER_BOX_CUSTOM_MODE, params=[expected_code]),
+        call(RoborockCommand.GET_STATUS),
+    ]
+    assert notified == [(102, position)]
+
+
+@pytest.mark.parametrize("position", [0, 31])
+async def test_set_water_slide_position_out_of_range(mock_rpc_channel: AsyncMock, position: int) -> None:
+    """Test that out-of-range positions are rejected before sending."""
+    status_trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=True)
+    status_trait._rpc_channel = mock_rpc_channel  # type: ignore[assignment]
+
+    with pytest.raises(ValueError, match="between 1 and 30"):
+        await status_trait.set_water_slide_position(position)
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+async def test_set_water_slide_position_unsupported(mock_rpc_channel: AsyncMock) -> None:
+    """Test that devices without a water slider reject slider positions."""
+    status_trait = _create_cleaning_mode_status_trait(is_water_slide_mode_supported=False)
+    status_trait._rpc_channel = mock_rpc_channel  # type: ignore[assignment]
+
+    with pytest.raises(RoborockUnsupportedFeature):
+        await status_trait.set_water_slide_position(23)
+    mock_rpc_channel.send_command.assert_not_called()
