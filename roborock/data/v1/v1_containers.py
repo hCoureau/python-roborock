@@ -362,6 +362,8 @@ class ConsumableField(FieldNameBase):
     MAIN_BRUSH_WORK_TIME = "main_brush_work_time"
     SIDE_BRUSH_WORK_TIME = "side_brush_work_time"
     FILTER_WORK_TIME = "filter_work_time"
+    STRAINER_WORK_TIME = "strainer_work_times"
+    CLEANING_BRUSH_WORK_TIME = "cleaning_brush_work_times"
 
 
 @dataclass
@@ -371,9 +373,11 @@ class Consumable(RoborockBase):
     filter_work_time: int | None = field(default=None, metadata={"dps": RoborockDataProtocol.FILTER_WORK_TIME})
     filter_element_work_time: int | None = None
     sensor_dirty_time: int | None = None
-    strainer_work_times: int | None = None
+    strainer_work_times: int | None = field(default=None, metadata={"dock_feature": "is_washable"})
     dust_collection_work_times: int | None = None
-    cleaning_brush_work_times: int | None = None
+    cleaning_brush_work_times: int | None = field(
+        default=None, metadata={"dock_feature": "is_cleaning_brush_supported"}
+    )
     moproller_work_time: int | None = None
 
     @property
