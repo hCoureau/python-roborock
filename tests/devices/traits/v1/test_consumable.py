@@ -53,6 +53,7 @@ async def test_get_consumable_data_success(consumable_trait: ConsumableTrait, mo
         (ConsumableAttribute.SENSOR_DIRTY_TIME, "sensor_dirty_time"),
         (ConsumableAttribute.STRAINER_WORK_TIME, "strainer_work_times"),
         (ConsumableAttribute.CLEANING_BRUSH_WORK_TIME, "cleaning_brush_work_times"),
+        (ConsumableAttribute.DUST_COLLECTION_WORK_TIME, "dust_collection_work_times"),
     ],
 )
 async def test_reset_consumable_data(
