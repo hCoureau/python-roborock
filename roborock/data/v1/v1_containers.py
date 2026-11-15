@@ -479,6 +479,16 @@ class MultiMapsList(RoborockBase):
 
 
 @dataclass
+class RoborockZone(RoborockBase):
+    """A rectangular area in map coordinates."""
+
+    x_start: int
+    y_start: int
+    x_end: int
+    y_end: int
+
+
+@dataclass
 class SmartWashParams(RoborockBase):
     smart_wash: int | None = None
     wash_interval: int | None = None

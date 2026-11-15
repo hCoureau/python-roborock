@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from roborock.data.v1 import RoborockZone
+from roborock.devices.device import RoborockDevice
 from roborock.devices.traits.v1.command import CommandTrait
 from roborock.exceptions import RoborockException
 from roborock.roborock_typing import RoborockCommand
@@ -59,3 +61,47 @@ async def test_send_command_propagates_exception(command_trait: CommandTrait) ->
     # Verify the exception is propagated
     with pytest.raises(RoborockException, match="Communication error"):
         await command_trait.send(RoborockCommand.APP_START)
+
+
+@pytest.mark.parametrize(
+    ("zones", "kwargs", "expected_params"),
+    [
+        ([RoborockZone(22000, 24000, 26000, 28000)], {}, [[22000, 24000, 26000, 28000, 1]]),
+        (
+            [RoborockZone(22000, 24000, 26000, 28000), RoborockZone(27000, 24000, 29000, 26000)],
+            {"repeat": 2},
+            [[22000, 24000, 26000, 28000, 2], [27000, 24000, 29000, 26000, 2]],
+        ),
+    ],
+)
+async def test_clean_zones(
+    device: RoborockDevice,
+    mock_rpc_channel: AsyncMock,
+    zones: list[RoborockZone],
+    kwargs: dict[str, int],
+    expected_params: list[list[int]],
+) -> None:
+    """Test starting a zone clean."""
+    assert device.v1_properties
+
+    await device.v1_properties.command.clean_zones(zones, **kwargs)
+
+    mock_rpc_channel.send_command.assert_called_once_with(RoborockCommand.APP_ZONED_CLEAN, params=expected_params)
+
+
+@pytest.mark.parametrize(
+    "zone",
+    [RoborockZone(22000, 24000, 22000, 28000), RoborockZone(22000, 24000, 26000, 24000)],
+)
+async def test_clean_zones_rejects_zero_area(
+    device: RoborockDevice,
+    mock_rpc_channel: AsyncMock,
+    zone: RoborockZone,
+) -> None:
+    """Test that a zone without an area is rejected before sending."""
+    assert device.v1_properties
+
+    with pytest.raises(ValueError, match="Zone must enclose an area"):
+        await device.v1_properties.command.clean_zones([zone])
+
+    mock_rpc_channel.send_command.assert_not_called()
