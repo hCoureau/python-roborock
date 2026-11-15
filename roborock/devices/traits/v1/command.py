@@ -1,6 +1,7 @@
 from typing import Any
 
 from roborock import RoborockCommand
+from roborock.data.v1 import RoborockZone
 from roborock.protocols.v1_protocol import ParamsType
 
 
@@ -24,6 +25,18 @@ class CommandTrait:
         device setup code.
         """
         self._rpc_channel = None
+
+    async def clean_zones(self, zones: list[RoborockZone], *, repeat: int = 1) -> None:
+        """Start cleaning the given rectangular zones of the current map.
+
+        Zone coordinates are in the device's map coordinate space. `repeat` is
+        the number of times each zone is cleaned.
+        """
+        for zone in zones:
+            if zone.x_start == zone.x_end or zone.y_start == zone.y_end:
+                raise ValueError(f"Zone must enclose an area: {zone}")
+        params = [[zone.x_start, zone.y_start, zone.x_end, zone.y_end, repeat] for zone in zones]
+        await self.send(RoborockCommand.APP_ZONED_CLEAN, params=params)
 
     async def send(self, command: RoborockCommand | str, params: ParamsType = None) -> Any:
         """Send a command to the device.
