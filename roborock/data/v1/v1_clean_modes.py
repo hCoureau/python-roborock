@@ -206,6 +206,9 @@ def get_water_slide_mode_name(code: int) -> str | None:
 
 def _resolve_water_slide_mode(code: int) -> WaterModes | None:
     """Resolve a raw slider code to the water mode for its app range."""
+    # Custom and SmartPlan modes report the same water codes as on other devices.
+    if code in (WaterModes.CUSTOMIZED.code, WaterModes.SMART_MODE.code):
+        return WaterModes.from_code(code)
     if code == 200:
         return WaterModes.OFF
     if code == WaterModes.SMART_WATER.code:

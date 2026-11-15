@@ -815,6 +815,8 @@ def test_water_slide_mode_mapping() -> None:
     ("water_box_mode", "expected_name"),
     [
         (200, "off"),
+        (204, "custom"),
+        (209, "smart_mode"),
         (210, "smart_water"),
         (221, "slight"),
         (223, "slight"),
