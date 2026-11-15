@@ -9,14 +9,7 @@ async def test_get_scenes():
     api = RoborockApiClient(username="test_user@gmail.com")
     ud = await api.pass_login("password")
     sc = await api.get_scenes(ud, "123456")
-    assert sc == [
-        HomeDataScene.from_dict(
-            {
-                "id": 1234567,
-                "name": "My plan",
-            }
-        )
-    ]
+    assert sc == [HomeDataScene(id=1234567, name="My plan", enabled=True, type="WORKFLOW")]
 
 
 async def test_execute_scene(mock_rest):

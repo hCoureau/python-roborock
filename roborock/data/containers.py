@@ -346,6 +346,10 @@ class HomeDataRoom(RoborockBase):
 class HomeDataScene(RoborockBase):
     id: int
     name: str
+    enabled: bool | None = None
+    """Whether the routine is enabled."""
+    type: str | None = None
+    """Routine kind reported by the cloud, e.g. ``WORKFLOW``."""
 
 
 @dataclass
