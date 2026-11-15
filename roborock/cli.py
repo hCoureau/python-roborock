@@ -577,17 +577,15 @@ async def clean_summary(ctx, device_id: str):
 async def clean_record(ctx, device_id: str):
     """Get device last clean record."""
     context: RoborockContext = ctx.obj
-    await _display_v1_trait(context, device_id, lambda v1: v1.clean_record)
-
-
-@session.command()
-@click.option("--device_id", required=True)
-@click.pass_context
-@async_command
-async def dock_summary(ctx, device_id: str):
-    """Get device dock summary."""
-    context: RoborockContext = ctx.obj
-    await _display_v1_trait(context, device_id, lambda v1: v1.dock_summary)
+    try:
+        trait = await _v1_trait(context, device_id, lambda v1: v1.clean_summary)
+    except RoborockUnsupportedFeature:
+        click.echo("Feature not supported by device")
+        return
+    if trait.last_clean_record is None:
+        click.echo("No clean record available")
+        return
+    click.echo(dump_json(trait.last_clean_record.as_dict()))
 
 
 @session.command()
@@ -895,7 +893,10 @@ async def set_child_lock(ctx, device_id: str, enabled: bool):
     """Set the child lock status."""
     context: RoborockContext = ctx.obj
     trait = await _v1_trait(context, device_id, lambda v1: v1.child_lock)
-    await trait.set_child_lock(enabled)
+    if enabled:
+        await trait.enable()
+    else:
+        await trait.disable()
     status = "enabled" if enabled else "disabled"
     click.echo(f"Child lock {status} for device {device_id}")
 
@@ -1402,7 +1403,6 @@ cli.add_command(get_device_info)
 cli.add_command(update_docs)
 cli.add_command(clean_summary)
 cli.add_command(clean_record)
-cli.add_command(dock_summary)
 cli.add_command(volume)
 cli.add_command(set_volume)
 cli.add_command(maps)
