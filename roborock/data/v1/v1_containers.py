@@ -610,3 +610,21 @@ class FlowLedStatus(RoborockBase):
 @dataclass
 class LedStatus(RoborockBase):
     status: int = 0
+
+
+@dataclass
+class CarpetModeSettings(RoborockBase):
+    """Carpet boost setting and motor tuning values reported by `get_carpet_mode`."""
+
+    enable: int
+    current_integral: int
+    current_high: int
+    current_low: int
+    stall_time: int
+
+
+@dataclass
+class CarpetMode(RoborockBase):
+    """Carpet boost state; `settings` is None until it has been read from the device."""
+
+    settings: CarpetModeSettings | None = None

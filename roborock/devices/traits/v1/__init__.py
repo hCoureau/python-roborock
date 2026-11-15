@@ -69,6 +69,7 @@ from roborock.roborock_message import RoborockDataProtocol, RoborockMessage
 from roborock.web_api import UserWebApiClient
 
 from . import (
+    carpet_mode,
     child_lock,
     clean_summary,
     command,
@@ -94,6 +95,7 @@ from . import (
     volume,
     wash_towel_mode,
 )
+from .carpet_mode import CarpetModeTrait
 from .child_lock import ChildLockTrait
 from .clean_summary import CleanSummaryTrait
 from .command import CommandTrait
@@ -123,6 +125,7 @@ _LOGGER = logging.getLogger(__name__)
 
 __all__ = [
     "PropertiesApi",
+    "carpet_mode",
     "child_lock",
     "clean_summary",
     "command",
@@ -173,6 +176,7 @@ class PropertiesApi(Trait):
     routines: RoutinesTrait
 
     # Optional features that may not be supported on all devices
+    carpet_mode: CarpetModeTrait | None = None
     child_lock: ChildLockTrait | None = None
     led_status: LedStatusTrait | None = None
     flow_led_status: FlowLedStatusTrait | None = None
