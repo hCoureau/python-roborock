@@ -92,6 +92,7 @@ from . import (
     smart_wash_params,
     status,
     valley_electricity_timer,
+    voice_package,
     volume,
     wash_towel_mode,
 )
@@ -118,6 +119,7 @@ from .routines import RoutinesTrait
 from .smart_wash_params import SmartWashParamsTrait
 from .status import StatusTrait
 from .valley_electricity_timer import ValleyElectricityTimerTrait
+from .voice_package import VoicePackageTrait
 from .volume import SoundVolumeTrait
 from .wash_towel_mode import WashTowelModeTrait
 
@@ -148,6 +150,7 @@ __all__ = [
     "smart_wash_params",
     "status",
     "valley_electricity_timer",
+    "voice_package",
     "volume",
     "wash_towel_mode",
 ]
@@ -174,6 +177,7 @@ class PropertiesApi(Trait):
     device_features: DeviceFeaturesTrait
     network_info: NetworkInfoTrait
     routines: RoutinesTrait
+    voice_package: VoicePackageTrait
 
     # Optional features that may not be supported on all devices
     camera: CameraTrait | None = None
