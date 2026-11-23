@@ -576,6 +576,14 @@ class NetworkInfo(RoborockBase):
 
 
 @dataclass
+class DockInfo(RoborockBase):
+    """Information reported by the dock."""
+
+    version: str | None = None
+    """Dock version string as reported (e.g. "0060"), not parsed or compared."""
+
+
+@dataclass
 class AppInitStatusLocalInfo(RoborockBase):
     location: str
     bom: str | None = None

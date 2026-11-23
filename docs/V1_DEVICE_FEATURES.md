@@ -1482,6 +1482,11 @@ Other capabilities depend only on the code:
 **Docks:** Pearl, Couple, Hera, Shell (except Shell 4R), K1 and F-series docks; none of the O-series docks.
 **Description:** The dock has a carousel (wash tray strainer) that the app shows as a consumable.
 
+### is_dock_info_supported
+**Docks:** F1 (41)
+**Description:** The dock is known to report its version through `get_dock_info`. Only the F1 dock has been confirmed
+so far.
+
 ### is_special_support_wash_temp
 **Docks:** Shell 2E Lite
 **Description:** Dock part of the app's check of the same name. The app also checks the product: it is true for every

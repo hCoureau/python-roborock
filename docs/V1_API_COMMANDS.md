@@ -31,6 +31,7 @@ Commands can have multiple parameters that can change from one model to another.
 * [get_custom_mode](#get_custom_mode)
 * [get_customize_clean_mode](#get_customize_clean_mode)
 * [get_dnd_timer](#get_dnd_timer)
+* [get_dock_info](#get_dock_info)
 * [get_dust_collection_mode](#get_dust_collection_mode)
 * [get_clean_follow_ground_material_status](#get_clean_follow_ground_material_status)
 * [get_identify_furniture_status](#get_identify_furniture_status)
@@ -1381,6 +1382,30 @@ Source: Roborock S7 MaxV Ultra
 
 * Roborock S7 MaxV Ultra: ✅
 * Roborock S8 Pro Ultra: ✅
+
+### get_dock_info
+
+Description: Get information reported by the dock. Exposed as `DockInfoTrait` for dock type 41 (`f1_dock`) only.
+
+Parameters: None
+
+Returns:
+
+    sn: Serial number of the dock (not exposed by `DockInfoTrait`).
+
+    version: Dock version string, kept as reported.
+
+Return example:
+
+```json
+    {'sn': 'XXXXXXXXXXXXXX', 'version': '0060'}
+```
+
+Source: Roborock Qrevo 2 Pro Series
+
+**Supported devices:**
+
+* Roborock Qrevo 2 Pro Series: ✅
 
 ### get_prop
 

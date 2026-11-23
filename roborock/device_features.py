@@ -955,6 +955,11 @@ _CLEAN_CAROUSEL_DOCK_TYPES = {
     RoborockDockTypeCode.f2rs_dock,
 }
 
+# Docks observed answering get_dock_info; extend as other dock families are confirmed.
+_DOCK_INFO_DOCK_TYPES = {
+    RoborockDockTypeCode.f1_dock,
+}
+
 
 @dataclass(frozen=True)
 class RoborockDockFeatures:
@@ -1091,6 +1096,11 @@ class RoborockDockFeatures:
     def is_clean_carousel_supported(self) -> bool:
         """Whether the dock has a carousel (wash tray strainer) that needs cleaning as a consumable."""
         return self.dock_type in _CLEAN_CAROUSEL_DOCK_TYPES
+
+    @property
+    def is_dock_info_supported(self) -> bool:
+        """Whether the dock is known to report its version via `get_dock_info`."""
+        return self.dock_type in _DOCK_INFO_DOCK_TYPES
 
 
 WASH_N_FILL_DOCK_TYPES = [

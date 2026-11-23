@@ -503,6 +503,13 @@ def test_dock_type_app_name_aliases() -> None:
         (RoborockDockTypeCode.o7_dock, True, "is_clean_carousel_supported", False),
         (RoborockDockTypeCode.shell_4r_dock, False, "is_clean_carousel_supported", False),
         (RoborockDockTypeCode.o0_dock, False, "is_clean_carousel_supported", False),
+        # get_dock_info: only the F1 dock (41) is known to answer it.
+        (RoborockDockTypeCode.f1_dock, False, "is_dock_info_supported", True),
+        (RoborockDockTypeCode.f1_dock, True, "is_dock_info_supported", True),
+        (RoborockDockTypeCode.f1r_dock, False, "is_dock_info_supported", False),
+        (RoborockDockTypeCode.o4_dock, False, "is_dock_info_supported", False),
+        (RoborockDockTypeCode.shell_4s_dock, False, "is_dock_info_supported", False),
+        (RoborockDockTypeCode.o0_dock, False, "is_dock_info_supported", False),
     ],
 )
 def test_dock_capabilities_from_app_dock_configs(
