@@ -34,6 +34,7 @@ from roborock.data.v1.v1_containers import (
     CleanRecord,
     CleanSummary,
     Consumable,
+    DeviceTimer,
     DnDTimer,
     NetworkInfo,
     StatusV2,
@@ -53,6 +54,13 @@ _LOGGER = logging.getLogger(__name__)
 def _serialize_dataclass(obj: Any) -> dict[str, Any]:
     """Helper to convert dataclass instances to dictionaries with serialized enums and filtered Nones."""
     return {k: (v.value if isinstance(v, Enum) else v) for k, v in asdict(obj).items() if v is not None}
+
+
+def _timer_entry(timer: DeviceTimer) -> list[Any]:
+    """Return a timer in the `get_timer` wire layout."""
+    params = _serialize_dataclass(timer.clean_params) if timer.clean_params else ""
+    state = "unknown" if timer.enabled is None else "on" if timer.enabled else "off"
+    return [timer.timer_id, state, [timer.cron, [timer.action, params]]]
 
 
 DEFAULT_STATUS = StatusV2(
@@ -219,6 +227,7 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
         dnd_timer: DnDTimer | None = None,
         clean_summary: CleanSummary | None = None,
         last_clean_record: CleanRecord | None = None,
+        timers: list[DeviceTimer] | None = None,
         custom_handlers: dict[str, Callable[[list[Any]], Any]] | None = None,
         device_info: HomeDataDevice | None = None,
         product: HomeDataProduct | None = None,
@@ -233,6 +242,7 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
         self.dnd_timer = dnd_timer or replace(DEFAULT_DND_TIMER)
         self.clean_summary = clean_summary or replace(DEFAULT_CLEAN_SUMMARY)
         self.last_clean_record = last_clean_record or replace(DEFAULT_LAST_CLEAN_RECORD)
+        self.timers = timers or []
         self.custom_handlers = custom_handlers or {}
 
         # Set up default handlers dictionary
@@ -252,6 +262,8 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
             "app_get_init_status": self._handle_app_get_init_status,
             "get_network_info": self._handle_get_network_info,
             "get_map_v1": lambda params: self.build_map_bytes(),
+            "get_timer": lambda params: [_timer_entry(timer) for timer in self.timers],
+            "upd_timer": self._handle_upd_timer,
         }
 
         # The simulated robot's own view of its map. Tests extend the path
@@ -376,6 +388,13 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
 
     def _handle_get_network_info(self, params: Any) -> dict[str, Any]:
         return _serialize_dataclass(self.network_info)
+
+    def _handle_upd_timer(self, params: Any) -> str:
+        timer_id, state = params
+        for timer in self.timers:
+            if timer.timer_id == timer_id:
+                timer.enabled = state == "on"
+        return "ok"
 
     # --- Simulated map -------------------------------------------------
 

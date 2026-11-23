@@ -5,7 +5,7 @@ from dataclasses import replace
 import pytest
 from vacuum_map_parser_base.config.drawable import Drawable
 
-from roborock.data import UserData
+from roborock.data import DeviceTimer, DeviceTimerCleanParams, UserData
 from roborock.data.v1 import RoborockStateCode
 from roborock.data.v1.v1_code_mappings import RoborockChargeStatus, RoborockDockTypeCode, RoborockInCleaning
 from roborock.devices.cache import InMemoryCache
@@ -90,6 +90,25 @@ async def test_trait_dnd_refresh():
     assert device.v1_properties.dnd.start_hour == 22
     assert device.v1_properties.dnd.end_hour == 7
     assert device.v1_properties.dnd.enabled == 1
+
+
+async def test_trait_timers_set_enabled():
+    """Verify that switching a timer updates both the simulator and the trait."""
+    cloud = FakeRoborockCloud()
+    timer = DeviceTimer(
+        timer_id="1700000000000",
+        enabled=False,
+        cron="30 9 * * 1",
+        action="start_clean",
+        clean_params=DeviceTimerCleanParams(segments="0", fan_power=102),
+    )
+    fake_device = V1VacuumSimulator(duid="s7_timers", timers=[replace(timer)])
+    device = await _create_connected_device(cloud, fake_device)
+
+    await device.v1_properties.device_timers.set_enabled("1700000000000", True)
+
+    assert fake_device.timers[0].enabled
+    assert device.v1_properties.device_timers.timers == [replace(timer, enabled=True)]
 
 
 async def test_trait_fan_speed_change():

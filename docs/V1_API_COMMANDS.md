@@ -47,6 +47,7 @@ Commands can have multiple parameters that can change from one model to another.
 * [get_smart_wash_params](#get_smart_wash_params)
 * [get_sound_progress](#get_sound_progress)
 * [get_status](#get_status)
+* [get_timer](#get_timer)
 * [get_timezone](#get_timezone)
 * [get_turn_server](#get_turn_server)
 * [get_valley_electricity_timer](#get_valley_electricity_timer)
@@ -1565,7 +1566,25 @@ Description: Sets the device's time zone
 
 Parameters:
 
+### get_timer
 
+Description: Returns the schedules stored on the device as `[id, state, [cron, [command, params]]]` entries.
+`state` is normally `"on"` or `"off"` and the cron expression uses the device's time zone. `params` is `""` on
+older firmware and an object of clean settings on newer firmware; the app can also write positional parameters
+such as `["start_clean", 104, "16,17"]`. This is not every schedule: some devices (such as a15 and a27) return an
+empty list while their schedules are kept in the cloud (`get_schedules` / `HomeDataSchedule`, from
+`/user/devices/{duid}/jobs`) or as server timers (`get_server_timer`), so an empty list does not mean the device
+has no schedules. `DeviceTimersTrait` reads this command.
+
+Parameters: None
+
+Returns:
+
+```json
+[["1488667794112", "off", ["49 22 * * 6", ["start_clean", ""]]]]
+```
+
+`upd_timer` with `[id, "on"]` or `[id, "off"]` switches a schedule on or off.
 
 
 ## Sound

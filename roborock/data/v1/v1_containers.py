@@ -576,6 +576,47 @@ class NetworkInfo(RoborockBase):
 
 
 @dataclass
+class DeviceTimerCleanParams(RoborockBase):
+    """Clean settings of a device schedule; codes match the `StatusV2` fields of the same name.
+
+    A partial, read-only view: fields such as `clean_order_mode` and `mop_template_id` are dropped, so never
+    write it back to the device.
+    """
+
+    segments: str | None = None
+    """`"0"` cleans the whole home."""
+    repeat: int | None = None
+    fan_power: int | None = None
+    water_box_mode: int | None = None
+    mop_mode: int | None = None
+    clean_mop: int | None = None
+    seq_type: int | None = None
+    map_index: int | None = None
+
+
+@dataclass
+class DeviceTimer(RoborockBase):
+    """A schedule stored on the device and returned by `get_timer`."""
+
+    timer_id: str
+    enabled: bool | None
+    """None when the device reports a state other than `on` or `off`."""
+    cron: str
+    """Cron expression `minute hour day month weekday` in the device's time zone."""
+    action: str
+    """Command run by the schedule, such as `start_clean`."""
+    clean_params: DeviceTimerCleanParams | None = None
+    """None when the device reports no parameters, as older firmware does, or ones in an unrecognised layout."""
+
+
+@dataclass
+class DeviceTimers(RoborockBase):
+    """Schedules stored on the device; cloud and server schedules are not included."""
+
+    timers: list[DeviceTimer] | None = None
+
+
+@dataclass
 class AppInitStatusLocalInfo(RoborockBase):
     location: str
     bom: str | None = None

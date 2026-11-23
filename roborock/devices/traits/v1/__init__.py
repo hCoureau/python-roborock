@@ -77,6 +77,7 @@ from . import (
     consumeable,
     customize_clean_mode,
     device_features,
+    device_timers,
     do_not_disturb,
     dust_collection_mode,
     flow_led_status,
@@ -103,6 +104,7 @@ from .common import V1TraitMixin
 from .consumeable import ConsumableTrait
 from .customize_clean_mode import CustomizeCleanModeTrait
 from .device_features import DeviceFeaturesTrait
+from .device_timers import DeviceTimersTrait
 from .do_not_disturb import DoNotDisturbTrait
 from .dust_collection_mode import DustCollectionModeTrait
 from .flow_led_status import FlowLedStatusTrait
@@ -133,6 +135,7 @@ __all__ = [
     "consumeable",
     "customize_clean_mode",
     "device_features",
+    "device_timers",
     "do_not_disturb",
     "dust_collection_mode",
     "flow_led_status",
@@ -174,6 +177,7 @@ class PropertiesApi(Trait):
     device_features: DeviceFeaturesTrait
     network_info: NetworkInfoTrait
     routines: RoutinesTrait
+    device_timers: DeviceTimersTrait
 
     # Optional features that may not be supported on all devices
     camera: CameraTrait | None = None

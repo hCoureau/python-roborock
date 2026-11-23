@@ -22,6 +22,9 @@ from roborock.data.v1.v1_containers import (
     CleanSummary,
     CleanSummaryWithDetail,
     Consumable,
+    DeviceTimer,
+    DeviceTimerCleanParams,
+    DeviceTimers,
     DnDTimer,
     StatusV2,
     get_dock_state,
@@ -472,3 +475,24 @@ def test_missing_new_feature_info() -> None:
     )
     assert app_init_status.new_feature_info == 0
     assert app_init_status.new_feature_info_str == ""
+
+
+@pytest.mark.parametrize(
+    "clean_params",
+    [None, DeviceTimerCleanParams(segments="0", repeat=1, fan_power=102, water_box_mode=235, map_index=-1)],
+)
+def test_device_timers_round_trip(clean_params: DeviceTimerCleanParams | None) -> None:
+    """Timers survive serialization, for example through the device cache."""
+    timers = DeviceTimers(
+        timers=[
+            DeviceTimer(
+                timer_id="1700000000000",
+                enabled=True,
+                cron="30 9 * * 1",
+                action="start_clean",
+                clean_params=clean_params,
+            )
+        ]
+    )
+
+    assert DeviceTimers.from_dict(timers.as_dict()) == timers
