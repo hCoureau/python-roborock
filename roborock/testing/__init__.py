@@ -94,6 +94,7 @@ from roborock.testing.v1_simulator import (
     DEFAULT_LAST_CLEAN_RECORD,
     DEFAULT_NETWORK_INFO,
     DEFAULT_STATUS,
+    DEFAULT_TIMEZONE,
     V1VacuumSimulator,
 )
 
@@ -112,6 +113,7 @@ __all__ = [
     "DEFAULT_PRODUCT_ID",
     "DEFAULT_Q10_STATUS",
     "DEFAULT_STATUS",
+    "DEFAULT_TIMEZONE",
     "DEFAULT_ZEO_DEVICE_INFO",
     "DEFAULT_ZEO_PRODUCT",
     "DEFAULT_ZEO_STATUS",

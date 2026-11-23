@@ -1551,7 +1551,7 @@ Description: Get the device's time zone.
 
 Parameters: None
 
-Returns: Time zone by the TZ identifier (e.g., America/Los_Angeles)
+Returns: A list containing the TZ identifier (e.g., `["America/Los_Angeles"]`)
 
 **Supported devices:**
 
@@ -1563,7 +1563,7 @@ Returns: Time zone by the TZ identifier (e.g., America/Los_Angeles)
 
 Description: Sets the device's time zone
 
-Parameters:
+Parameters: A list containing an IANA TZ identifier (e.g., `["Europe/Berlin"]`)
 
 
 

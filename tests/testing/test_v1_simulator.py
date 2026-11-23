@@ -17,6 +17,7 @@ from roborock.roborock_message import RoborockMessage, RoborockMessageProtocol
 from roborock.testing import (
     DEFAULT_NETWORK_INFO,
     DEFAULT_STATUS,
+    DEFAULT_TIMEZONE,
     FakeRoborockCloud,
     V1VacuumSimulator,
 )
@@ -90,6 +91,35 @@ async def test_trait_dnd_refresh():
     assert device.v1_properties.dnd.start_hour == 22
     assert device.v1_properties.dnd.end_hour == 7
     assert device.v1_properties.dnd.enabled == 1
+
+
+async def test_trait_timezone_round_trip():
+    """Verify that setting the timezone updates the simulator and is read back by the trait."""
+    cloud = FakeRoborockCloud()
+    fake_device = V1VacuumSimulator(duid="s7_timezone")
+    device = await _create_connected_device(cloud, fake_device)
+    timezone = device.v1_properties.timezone
+
+    await timezone.refresh()
+    assert timezone.identifier == DEFAULT_TIMEZONE
+
+    await timezone.set_timezone("Europe/Berlin")
+    assert fake_device.timezone == "Europe/Berlin"
+
+    await timezone.refresh()
+    assert timezone.identifier == "Europe/Berlin"
+
+
+async def test_positional_arguments_keep_order():
+    """Positional callers predating the timezone option still reach custom_handlers and device_info."""
+    handlers = {"get_timezone": lambda params: ["Asia/Tokyo"]}
+    fake_device = V1VacuumSimulator("s7_positional", None, None, None, None, None, None, None, handlers)
+    assert fake_device.custom_handlers is handlers
+    assert fake_device.timezone == DEFAULT_TIMEZONE
+
+    device = await _create_connected_device(FakeRoborockCloud(), fake_device)
+    await device.v1_properties.timezone.refresh()
+    assert device.v1_properties.timezone.identifier == "Asia/Tokyo"
 
 
 async def test_trait_fan_speed_change():

@@ -169,6 +169,8 @@ DEFAULT_LAST_CLEAN_RECORD = CleanRecord(
     map_flag=0,
 )
 
+DEFAULT_TIMEZONE = "America/Los_Angeles"
+
 
 # Eight character endpoint, matching the width of the map response header field.
 MAP_ENDPOINT = "fakeendp"
@@ -222,6 +224,8 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
         custom_handlers: dict[str, Callable[[list[Any]], Any]] | None = None,
         device_info: HomeDataDevice | None = None,
         product: HomeDataProduct | None = None,
+        *,
+        timezone: str = DEFAULT_TIMEZONE,
     ):
         super().__init__(duid=duid, device_info=device_info, product=product)
         self.status = status or replace(DEFAULT_STATUS)
@@ -233,6 +237,7 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
         self.dnd_timer = dnd_timer or replace(DEFAULT_DND_TIMER)
         self.clean_summary = clean_summary or replace(DEFAULT_CLEAN_SUMMARY)
         self.last_clean_record = last_clean_record or replace(DEFAULT_LAST_CLEAN_RECORD)
+        self.timezone = timezone
         self.custom_handlers = custom_handlers or {}
 
         # Set up default handlers dictionary
@@ -242,6 +247,8 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
             "get_dnd_timer": lambda params: _serialize_dataclass(self.dnd_timer),
             "get_clean_summary": lambda params: _serialize_dataclass(self.clean_summary),
             "get_clean_record": lambda params: _serialize_dataclass(self.last_clean_record),
+            "get_timezone": lambda params: [self.timezone],
+            "set_timezone": self._handle_set_timezone,
             "app_start": self._handle_app_start,
             "app_stop": self._handle_app_stop,
             "app_charge": self._handle_app_charge,
@@ -346,6 +353,11 @@ class V1VacuumSimulator(RoborockDeviceSimulator):
             consumable_name = params[0]
             if hasattr(self.consumables, consumable_name):
                 setattr(self.consumables, consumable_name, 0)
+        return "ok"
+
+    def _handle_set_timezone(self, params: Any) -> str:
+        if isinstance(params, list) and len(params) > 0:
+            self.timezone = params[0]
         return "ok"
 
     def _handle_app_get_init_status(self, params: Any) -> list[dict[str, Any]]:
