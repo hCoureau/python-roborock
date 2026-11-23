@@ -36,6 +36,16 @@ class MopDryerTrait(MopDryerSetting, common.V1TraitMixin, common.RoborockSwitchB
         # Optimistic update to avoid an extra refresh
         self.status = 1
 
+    async def enable_with_duration(self, duration_seconds: int) -> None:
+        """Enable auto mop drying with a drying duration in seconds, then refresh the setting."""
+        if duration_seconds <= 0:
+            raise ValueError(f"Mop drying duration must be positive, got {duration_seconds}")
+        await self.rpc_channel.send_command(
+            RoborockCommand.APP_SET_DRYER_SETTING,
+            params={_STATUS_PARAM: 1, "on": {"dry_time": duration_seconds}},
+        )
+        await self.refresh()
+
     async def disable(self) -> None:
         """Disable auto mop drying."""
         await self.rpc_channel.send_command(RoborockCommand.APP_SET_DRYER_SETTING, params={_STATUS_PARAM: 0})

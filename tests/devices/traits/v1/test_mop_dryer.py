@@ -7,6 +7,7 @@ import pytest
 from roborock.data import RoborockDockTypeCode
 from roborock.devices.device import RoborockDevice
 from roborock.devices.traits.v1.mop_dryer import MopDryerTrait
+from roborock.exceptions import RoborockException
 from roborock.roborock_typing import RoborockCommand
 from tests.devices.traits.v1.helpers import dock_types_with_capability
 
@@ -136,6 +137,70 @@ async def test_set_auto_dry(
     )
     # The command result is applied optimistically to avoid an extra refresh
     assert mop_dryer.is_on is expected_is_on
+
+
+@pytest.mark.parametrize("dock_type_code", [DRYABLE_DOCK])
+@pytest.mark.parametrize("duration_seconds", [7200, 14400])
+async def test_enable_with_duration(
+    mop_dryer: MopDryerTrait,
+    mock_rpc_channel: AsyncMock,
+    dock_type_code: RoborockDockTypeCode,
+    duration_seconds: int,
+) -> None:
+    """Test enabling auto mop drying with a duration, then reading the setting back."""
+    assert mop_dryer is not None
+    mop_dryer.status = 0
+    mock_rpc_channel.send_command.side_effect = [
+        "ok",
+        {**MOP_DRYER_SETTING_DATA, "on": {"dry_time": duration_seconds, "dry_heating_film_time": 3600}},
+    ]
+
+    await mop_dryer.enable_with_duration(duration_seconds)
+
+    assert mock_rpc_channel.send_command.call_args_list == [
+        call(RoborockCommand.APP_SET_DRYER_SETTING, params={"status": 1, "on": {"dry_time": duration_seconds}}),
+        call(RoborockCommand.APP_GET_DRYER_SETTING),
+    ]
+    assert mop_dryer.is_on is True
+    assert mop_dryer.on is not None
+    assert mop_dryer.on.dry_time == duration_seconds
+
+
+@pytest.mark.parametrize("dock_type_code", [DRYABLE_DOCK])
+@pytest.mark.parametrize("duration_seconds", [0, -1])
+async def test_enable_with_duration_invalid(
+    mop_dryer: MopDryerTrait,
+    mock_rpc_channel: AsyncMock,
+    dock_type_code: RoborockDockTypeCode,
+    duration_seconds: int,
+) -> None:
+    """Test that a non-positive duration is rejected without sending a command."""
+    assert mop_dryer is not None
+
+    with pytest.raises(ValueError, match="must be positive"):
+        await mop_dryer.enable_with_duration(duration_seconds)
+
+    mock_rpc_channel.send_command.assert_not_called()
+
+
+@pytest.mark.parametrize("dock_type_code", [DRYABLE_DOCK])
+async def test_enable_with_duration_failure(
+    mop_dryer: MopDryerTrait,
+    mock_rpc_channel: AsyncMock,
+    dock_type_code: RoborockDockTypeCode,
+) -> None:
+    """Test that a rejected command propagates and leaves the setting unchanged."""
+    assert mop_dryer is not None
+    mop_dryer.status = 0
+    mock_rpc_channel.send_command.side_effect = RoborockException("Communication error")
+
+    with pytest.raises(RoborockException, match="Communication error"):
+        await mop_dryer.enable_with_duration(14400)
+
+    mock_rpc_channel.send_command.assert_called_once_with(
+        RoborockCommand.APP_SET_DRYER_SETTING, params={"status": 1, "on": {"dry_time": 14400}}
+    )
+    assert mop_dryer.is_on is False
 
 
 @pytest.mark.parametrize(
